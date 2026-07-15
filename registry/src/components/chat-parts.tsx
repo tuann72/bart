@@ -3,9 +3,20 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getToolName, isToolUIPart, type ToolUIPart } from "ai";
 import { motionDisabled } from "../core/motion";
-import type { BartToolName, UseBartChatReturn } from "../core/use-bart-chat";
+import {
+  isBartToolName,
+  type BartToolName,
+  type UseBartChatReturn,
+} from "../core/use-bart-chat";
 import type { BartToolOutput, BartTools, BartUIMessage } from "../core/types";
-import { CheckIcon, CloseIcon, SendIcon, StopIcon } from "./icons";
+import {
+  BartIcon,
+  CheckIcon,
+  CloseIcon,
+  RefreshIcon,
+  SendIcon,
+  StopIcon,
+} from "./icons";
 import { MarkdownContent } from "./markdown";
 
 type BartToolPart = ToolUIPart<BartTools>;
@@ -59,7 +70,14 @@ function ToolPartView({
   part: BartToolPart;
   bart: UseBartChatReturn;
 }) {
-  const toolName = getToolName(part) as BartToolName;
+  const toolName = getToolName(part);
+  // A tool this build doesn't know renders as an inert row: no approval card,
+  // no policy lookup, nothing executable.
+  if (!isBartToolName(toolName)) {
+    return (
+      <div className="bart-tool-row bart-muted">{String(toolName)} (unsupported)</div>
+    );
+  }
   const label = toolCallLabel(toolName, part.input);
 
   if (part.state === "input-streaming") {
@@ -280,6 +298,45 @@ export function ChatInput({
         </div>
       </div>
     </form>
+  );
+}
+
+/** Title row shared by the dock and sidebar shells: brand, new chat, close. */
+export function PanelHeader({
+  title,
+  onNewChat,
+  onClose,
+}: {
+  title: string;
+  onNewChat: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <header className="bart-panel-header">
+      <span className="bart-panel-title">
+        <BartIcon /> {title}
+      </span>
+      <div className="bart-panel-actions">
+        <button
+          type="button"
+          className="bart-icon-btn"
+          aria-label="Start new chat"
+          title="Start new chat"
+          onClick={onNewChat}
+        >
+          <RefreshIcon />
+        </button>
+        <button
+          type="button"
+          className="bart-icon-btn"
+          aria-label="Close chat"
+          title="Close chat"
+          onClick={onClose}
+        >
+          <CloseIcon />
+        </button>
+      </div>
+    </header>
   );
 }
 

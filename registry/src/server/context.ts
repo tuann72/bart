@@ -107,15 +107,65 @@ export function selectContext(
 }
 
 /**
+ * Neutralize anything in embedded content that could read as one of Bart's
+ * own delimiters, so site markdown cannot close a `<bart-context>` block (or
+ * open a fake one) and smuggle text out of the data boundary.
+ */
+export function neutralizeDelimiters(text: string): string {
+  return text.replace(/<(\/?)(bart-)/gi, "&lt;$1$2");
+}
+
+function attributeValue(text: string): string {
+  return neutralizeDelimiters(text).replace(/"/g, "&quot;");
+}
+
+/**
  * Delimit context so the model treats it as quoted reference data, never as
- * instructions.
+ * instructions. All embedded fields are sanitized — bodies, and the route and
+ * title attributes, which could otherwise break out of their quotes.
  */
 export function formatContext(blocks: ContextBlock[]): string {
   if (blocks.length === 0) return "No site content matched this question.";
   return blocks
     .map(
       (block) =>
-        `<bart-context route="${block.route}" title="${block.title}">\n${block.body}\n</bart-context>`,
+        `<bart-context route="${attributeValue(block.route)}" title="${attributeValue(block.title)}">\n${neutralizeDelimiters(block.body)}\n</bart-context>`,
     )
     .join("\n\n");
+}
+
+export interface SearchExcerpt {
+  route: string;
+  title: string;
+  excerpt: string;
+}
+
+/**
+ * The `search_content` tool's retrieval: the first matching line of each
+ * document, in manifest order — deterministic by construction. An empty or
+ * tokenless query matches nothing.
+ */
+export function searchContent(
+  manifest: BartServerManifest,
+  query: string,
+  maxResults = 5,
+  maxExcerptChars = 400,
+): SearchExcerpt[] {
+  const tokens = new Set(tokenize(query));
+  if (tokens.size === 0) return [];
+  const results: SearchExcerpt[] = [];
+  for (const doc of manifest.documents) {
+    if (results.length >= maxResults) break;
+    const line = doc.body
+      .split("\n")
+      .find((candidate) => tokenize(candidate).some((t) => tokens.has(t)));
+    if (line !== undefined) {
+      results.push({
+        route: doc.route,
+        title: doc.title,
+        excerpt: line.slice(0, maxExcerptChars),
+      });
+    }
+  }
+  return results;
 }

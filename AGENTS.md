@@ -26,11 +26,16 @@ Implemented and verified:
   selection popover fades and lifts
   in, and fades back out when the selection is lost. `prefers-reduced-motion`
   disables all Bart animation (`core/motion.ts` also skips the exit-animation
-  state). Anything with an exit animation follows one pattern: `motionDisabled()`
-  unmounts immediately, otherwise a `closing` flag flips a `data-state` attribute
-  and `onAnimationEnd` does the unmount — never a `setTimeout` duplicating the
-  CSS duration in JS. Closing a panel returns focus to its launcher, which has
-  to wait for the remount commit (see gotchas).
+  state). Every panel's exit follows one pattern, owned by
+  `core/use-shell-lifecycle.ts`: `open` flips false the moment a close begins,
+  a `closing` flag keeps the panel mounted while the exit animation plays, and
+  `onAnimationEnd` unmounts — never a `setTimeout` duplicating the CSS
+  duration in JS. `motionDisabled()` skips the closing state entirely.
+  Reopening mid-exit (e.g. the selection popover's "Ask Bart") cancels the
+  close instead of losing the request; an external controlled `open={false}`
+  unmounts instantly, as controlled components do. Closing a panel returns
+  focus to its launcher, which has to wait for the remount commit (see
+  gotchas).
 - Iconography: shared SVG icons in `components/icons.tsx` (circular Bart
   mark, close, send, stop, check, refresh) — no emoji glyphs in Bart UI. The
   send/stop control is a round icon button inside the combined input shell.
@@ -55,14 +60,17 @@ Implemented and verified:
   API server running a scripted mock model (offline, deterministic, no API
   key). No provider adapter is installed anywhere in the repository. This app
   doubles as the future Playwright host.
-- Unit tests (`bun test`, 37 passing) for shortcut suppression, route/target
-  validation, and context selection.
+- Tests (`bun test`, 99 passing): pure unit tests (shortcut suppression,
+  route/target validation, context selection and search, resize math, server
+  boundary hardening) plus a React Testing Library contract suite that runs
+  identical behavioral assertions against all three variant shells in
+  happy-dom (see Testing strategy).
 
 Planned but NOT yet built: the `@bart-ui/cli` package (`init`, `add <variant>`,
 `sync`, `doctor`, `update`), markdown ingestion via `gray-matter` (manifests are
 currently hand-written in the playground), Next.js/React Router adapters and
 example apps, provider factories (OpenAI/Anthropic/Google),
-durable rate limiting, React Testing Library + Playwright suites.
+durable rate limiting, and the Playwright browser suite.
 
 ## Workspace layout
 
@@ -74,11 +82,15 @@ hoisted to root `node_modules`).
   `./server`, `./styles.css` pointing at TypeScript source, not builds)
   - `src/core/` — `use-bart-chat.ts` (headless core over AI SDK `useChat`),
     `tool-policy.ts` (route/target allowlisting + policy resolution),
-    `highlight.ts` (overlay + aria-live), `shortcut.ts` (spotlight `/` key
-    suppression logic, DOM-free for testability), `selection.ts` (quote
-    normalization/capping + blockquote building, DOM-free), `focus-trap.ts`,
-    `use-resize-drag.ts` (pointer-capture drag plumbing + the page-wide cursor
-    class, shared by every resize handle), `types.ts`
+    `use-shell-lifecycle.ts` (open/closing/unmount phases, Escape-to-close,
+    focus restore — shared by every variant shell), `use-sidebar-push.ts`
+    (the sidebar's only global side effects: body push classes + the `<html>`
+    width variable, instance-counted), `resize.ts` (side-aware resize math,
+    DOM-free), `highlight.ts` (overlay + aria-live), `shortcut.ts` (spotlight
+    `/` key suppression logic, DOM-free for testability), `selection.ts`
+    (quote normalization/capping + blockquote building, DOM-free),
+    `focus-trap.ts`, `use-resize-drag.ts` (pointer-capture drag plumbing +
+    the page-wide cursor class, shared by every resize handle), `types.ts`
   - `src/components/` — `bart-chat.tsx` (variant switch; owns the shared
     `open` state and the selection popover), `dock.tsx`, `sidebar.tsx`,
     `spotlight.tsx` (all controlled via `open`/`onOpenChange`),
@@ -87,9 +99,16 @@ hoisted to root `node_modules`).
   - `src/server/` — `index.ts` (`createBartHandler`), `context.ts`
     (deterministic lexical selection under a character budget)
   - `src/styles.css` — `--bart-*` theming tokens + all component styling
+  - `src/test-setup.ts` — `bun test` preload (wired in the root
+    `bunfig.toml`): registers happy-dom, then restores Bun's native
+    fetch/stream globals (see gotchas), shims `offsetParent`, silences the
+    act() streaming warning
 - `apps/playground/` — Vite React app (port 5173, proxies `/api` → 8787);
-  `server/` holds the Hono app, scripted mock model, and server manifest
-  (port 8787)
+  `src/` splits into `App.tsx` (composition), `pages.tsx` (the fictional site
+  content), and `playground-controls.tsx` (the header's variant/side/launcher
+  knobs); `server/` holds the Hono app, scripted mock model, and server
+  manifest (port 8787), plus a test pinning the public manifest as the server
+  manifest's safe projection
 
 ## Commands
 
@@ -107,7 +126,8 @@ From the repo root:
   carries a `/* ---------- name ---------- */` marker: grep the marker, then read
   from that offset. Same for `apps/playground/src/App.tsx` (~490).
 - Verification ladder, climbed only as far as the change needs: `bun run
-  typecheck` → `bun test` (37 unit tests, no DOM) → a scripted Playwright run
+  typecheck` → `bun test` (~100 tests: pure logic plus happy-dom component
+  contracts) → a scripted Playwright run
   against the playground (slow; needs both servers up). Screenshots are the most
   expensive output in this repo: take one only when the question is genuinely
   visual (contrast, a band artifact, spacing), clip to the element rather than
@@ -134,6 +154,13 @@ From the repo root:
 - Registry code must satisfy the playground's strict tsconfig (it is
   typechecked through the app's `tsc -b`): `noUnusedLocals`,
   `verbatimModuleSyntax`, `noUncheckedIndexedAccess`.
+- Capability rule: conversation-level functionality (send, stop, errors,
+  approvals, quotes, reset) is implemented in the headless core or shared
+  chrome first and exposed by every variant. Variant-only behavior must be
+  purely presentational or input-method-specific (the spotlight's shortcut and
+  latest-exchange view qualify; a variant-only action button would not). The
+  contract suite enforces this: new conversation behavior gets a test that
+  runs against all three shells.
 - Semantic `bart-*` CSS classes live in `registry/src/styles.css`; theming goes
   through the `--bart-primary` / `--bart-accent` (+ `-foreground`) tokens, which
   are also mapped into Tailwind via `@theme inline`. Both light and `.dark`
@@ -180,13 +207,14 @@ From the repo root:
 - **Restoring focus to a launcher can't happen inside the close handler.** The
   launcher is unmounted while the panel is open, so a `launcherRef.current
   ?.focus()` called synchronously while closing targets a ref that is still
-  null; it silently does nothing and focus falls to `<body>`. The close handler
-  sets a `restoreFocusRef` flag instead, and an effect keyed on the panel's
-  visibility does the `focus()` after the commit that puts the launcher back.
-  The dock and sidebar both work this way. The spotlight has no launcher, so it
-  restores to whatever held focus before it opened (`restoreRef`), but for the
-  same reason it also restores from an effect rather than from the close
-  handler. Keep any new variant on one of these two shapes.
+  null; it silently does nothing and focus falls to `<body>`.
+  `useShellLifecycle` owns the fix: pass the launcher as `restoreFocusTo` and
+  an effect keyed on the panel's visibility does the `focus()` after the
+  commit that puts it back. The dock and sidebar both work this way; don't
+  hand-roll it in a variant. The spotlight has no launcher, so it restores to
+  whatever held focus before it opened (`restoreRef`), but for the same reason
+  it also restores from an effect rather than from the close handler. Keep any
+  new variant on one of these two shapes.
 - **`[data-bart-ui] button:not(:disabled)` (specificity 0,2,1) outranks a
   single class.** Any button needing its own `cursor` must be exempted there or
   the blanket `pointer` silently wins and the affordance never appears. The
@@ -211,6 +239,14 @@ From the repo root:
   eases margin over 0.45s for the open/close slide, which would leave the page
   trailing the pointer, so `body.bart-sidebar-push.bart-resizing-ew` turns that
   transition off for the duration of a drag only.
+- **The test DOM is happy-dom, and two of its gaps are load-bearing.** It
+  never runs CSS animations, so `animationend` never fires: tests close panels
+  by dispatching the event themselves (`fireEvent.animationEnd(panel)`), and a
+  hanging close in a test must never be "fixed" by weakening component unmount
+  logic. And registering happy-dom replaces `fetch`/`Response`/`ReadableStream`
+  with lookalikes the AI SDK rejects ("readable should be ReadableStream") —
+  `registry/src/test-setup.ts` restores Bun's natives immediately after
+  registration; keep that order.
 - The playground `<BartChat key={variant}>` remounts on variant switch, so the
   conversation resets — intentional for the playground.
 
@@ -238,12 +274,23 @@ From the repo root:
    auto-cleaned.
 6. **Context is data, not instructions**: markdown is delimited in
    `<bart-context>` tags and the base system prompt says embedded instructions
-   must be ignored and cannot expand tool permissions.
-7. **Request hardening**: schema validation, limits on body size / message
+   must be ignored and cannot expand tool permissions. Embedded content is
+   sanitized on the way in: `neutralizeDelimiters` defuses any `<bart-…`
+   sequence so a document can neither close its context block nor open a fake
+   one, attribute values are quote-escaped, and the route catalog (also
+   content-derived, via front matter) sits inside its own `<bart-catalog>`
+   block under the same rules, with newlines collapsed so a crafted title
+   cannot fake extra catalog entries.
+7. **Request hardening**: schema validation with an allowlist of message part
+   shapes (text, step-start, and this handler's own tool parts — anything else
+   is rejected, never forwarded to the model), limits on body size / message
    count / message length / output tokens / tool steps / duration, origin
    validation, `authorize(request)` hook, abort on client disconnect
-   (`AbortSignal.any` with a timeout). Don't log API keys, full prompts, or
-   message bodies.
+   (`AbortSignal.any` with a timeout). The body limit counts *bytes* and is
+   enforced while streaming the request in — never buffer past the cap.
+   Configured limits are clamps, not settings: consumers can lower them but
+   `LIMIT_CAPS` (server) and the client's navigation/selection caps are hard
+   ceilings. Don't log API keys, full prompts, or message bodies.
 8. **Tool policies** are `auto` | `confirm` | `disabled` per tool. Defaults:
    highlight `auto`, navigate `confirm`.
 9. **Spotlight shortcut** (`/`, remappable) must never fire inside inputs,
@@ -293,13 +340,21 @@ retrieval is deliberately out of V1 scope.
 
 ## Testing strategy
 
-- Pure logic (validators, ranking, budgeting, shortcut suppression) → `bun
-  test`, no DOM or network. Test files sit next to sources (`*.test.ts`).
-- Component behavior (approval flows, streaming states, focus) → React Testing
-  Library (not yet set up).
+- Pure logic (validators, ranking, budgeting, shortcut suppression, resize
+  math, server boundary) → `bun test`, no DOM or network. Test files sit next
+  to sources (`*.test.ts`).
+- Component behavior (open/close/focus, streaming, errors, approvals, reset)
+  → the contract suite (`components/variants.contract.test.tsx`): one
+  table-driven set of assertions run against dock, sidebar, and spotlight in
+  happy-dom, with a queued-fetch mock speaking the AI SDK's SSE wire format.
+  It asserts user-visible outcomes, never implementation details — that is
+  what let the shell internals be rewritten under it without edits. Variant
+  one-offs and `use-shell-lifecycle` edge cases (reopen-mid-exit) have their
+  own blocks/files.
 - Full flows → Playwright against the playground with the mock model, covering
-  all three variants and the `/` shortcut edge cases (not yet set up; a manual
-  Playwright script was used for initial verification).
+  all three variants and the `/` shortcut edge cases (not yet set up; manual
+  Playwright scripts are used for smoke verification). The deferred stylesheet
+  restructure (see PLAN.md) is blocked on this suite existing.
 - Screenshot-based visual regression only once the design stabilizes.
 - The mock model exercises the same handler/transport/streaming/approval paths
   as real providers; provider-specific behavior belongs in a mocked-provider

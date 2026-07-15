@@ -18,11 +18,24 @@ import type {
   BartToolOutput,
   BartToolPolicies,
   BartUIMessage,
-  HighlightInput,
-  NavigateInput,
 } from "./types";
 
 export type BartToolName = "navigate" | "highlight";
+
+/** Runtime guard for model-supplied tool names — never trust the wire. */
+export function isBartToolName(name: unknown): name is BartToolName {
+  return name === "navigate" || name === "highlight";
+}
+
+function stringField(input: unknown, key: string): string | undefined {
+  if (typeof input !== "object" || input === null) return undefined;
+  const value = (input as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function clampLimit(value: number, minimum: number, maximum: number): number {
+  return Math.min(Math.max(Math.floor(value), minimum), maximum);
+}
 
 export interface UseBartChatOptions {
   api: string;
@@ -68,9 +81,14 @@ export interface UseBartChatReturn {
 export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const { api, manifest } = options;
   const policies = resolveToolPolicies(options.toolPolicy);
-  const maxNavigations = options.maxNavigationsPerTurn ?? 2;
-  const maxPendingSelections =
-    options.maxPendingSelections ?? MAX_SELECTION_ITEMS;
+  // Security caps, not preferences: consumer configuration can lower these
+  // but never raise them past the documented ceilings.
+  const maxNavigations = clampLimit(options.maxNavigationsPerTurn ?? 2, 0, 10);
+  const maxPendingSelections = clampLimit(
+    options.maxPendingSelections ?? MAX_SELECTION_ITEMS,
+    1,
+    MAX_SELECTION_ITEMS,
+  );
 
   const routeRef = useRef(options.currentRoute);
   routeRef.current = options.currentRoute;
@@ -84,20 +102,22 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const executeTool = useCallback(
     (toolName: BartToolName, input: unknown): BartToolOutput => {
       if (toolName === "navigate") {
-        const route = (input as NavigateInput | undefined)?.route;
+        const route = stringField(input, "route");
+        if (route === undefined) return { ok: false, reason: "invalid-route" };
         const check = validateRoute(manifest, route);
         if (!check.ok) return check;
         if (navigationsThisTurn.current >= maxNavigations) {
           return { ok: false, reason: "navigation-limit-reached" };
         }
         navigationsThisTurn.current += 1;
-        navigateRef.current(route as string);
+        navigateRef.current(route);
         return { ok: true };
       }
-      const target = (input as HighlightInput | undefined)?.target;
+      const target = stringField(input, "target");
+      if (target === undefined) return { ok: false, reason: "invalid-target" };
       const check = validateTarget(manifest, routeRef.current, target);
       if (!check.ok) return check;
-      return runHighlight(target as string);
+      return runHighlight(target);
     },
     [manifest, maxNavigations],
   );
@@ -117,11 +137,10 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     onToolCall: ({ toolCall }) => {
-      const toolName = toolCall.toolName as BartToolName;
+      const { toolName } = toolCall;
       const helpers = helpersRef.current;
       if (!helpers) return;
-      const policy = policiesRef.current[toolName];
-      if (policy === undefined) {
+      if (!isBartToolName(toolName)) {
         void helpers.addToolOutput({
           state: "output-error",
           tool: toolName,
@@ -130,6 +149,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
         });
         return;
       }
+      const policy = policiesRef.current[toolName];
       // `confirm` waits for the approval UI; everything else resolves now.
       if (policy === "confirm") return;
       const output: BartToolOutput =
@@ -146,19 +166,22 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   helpersRef.current = chat;
 
   const [pendingQuotes, setPendingQuotes] = useState<string[]>([]);
+  // Read through a ref so sendText keeps one identity across quote changes.
+  const quotesRef = useRef(pendingQuotes);
+  quotesRef.current = pendingQuotes;
 
   const sendText = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (trimmed.length === 0) return;
       navigationsThisTurn.current = 0;
-      const message = pendingQuotes.length > 0
-        ? buildQuotedMessage(pendingQuotes, trimmed)
-        : trimmed;
+      const quotes = quotesRef.current;
+      const message =
+        quotes.length > 0 ? buildQuotedMessage(quotes, trimmed) : trimmed;
       setPendingQuotes([]);
       void chat.sendMessage({ text: message });
     },
-    [chat.sendMessage, pendingQuotes],
+    [chat.sendMessage],
   );
 
   const attachQuote = useCallback((rawSelection: string) => {
@@ -185,21 +208,30 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
     [chat.addToolOutput, executeTool],
   );
 
+  const stop = useCallback(() => void chat.stop(), [chat.stop]);
+
+  const removeQuote = useCallback(
+    (index: number) =>
+      setPendingQuotes((current) =>
+        current.filter((_, currentIndex) => currentIndex !== index),
+      ),
+    [],
+  );
+
+  const clearQuotes = useCallback(() => setPendingQuotes([]), []);
+
   return {
     messages: chat.messages,
     status: chat.status,
     error: chat.error,
     policies,
     sendText,
-    stop: () => void chat.stop(),
+    stop,
     clearError: chat.clearError,
     pendingQuotes,
     attachQuote,
-    removeQuote: (index) =>
-      setPendingQuotes((current) =>
-        current.filter((_, currentIndex) => currentIndex !== index),
-      ),
-    clearQuotes: () => setPendingQuotes([]),
+    removeQuote,
+    clearQuotes,
     reset,
     respondToToolCall,
   };

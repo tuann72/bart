@@ -90,9 +90,14 @@ Things to try:
 ## Development
 
 ```bash
-bun test              # unit tests (validators, ranking, shortcut logic)
+bun test              # unit tests + a per-variant component contract suite
 bun run typecheck     # registry + playground TypeScript
 ```
+
+The contract suite runs one table of behavioral assertions — open/close,
+focus restore, streaming, errors, tool approvals, new chat — against all
+three variants in happy-dom, so a capability added to one shell fails the
+suite until every shell has it.
 
 ### How it fits together
 
@@ -100,7 +105,9 @@ bun run typecheck     # registry + playground TypeScript
   Vercel AI SDK's `useChat`). It owns transport, streaming, and **all** tool
   security: route allowlisting, target validation, approval policies, and
   per-turn navigation caps. The three variant components in
-  `registry/src/components/` are thin shells over it.
+  `registry/src/components/` are thin shells over it, sharing one lifecycle
+  hook for open/close animation, Escape, and focus restore, and one header
+  for the new-chat/close actions.
 - `registry/src/server/index.ts` exports `createBartHandler`, a Fetch-standard
   `Request -> Response` handler with schema validation, origin checks, size and
   duration limits, and delimited site context. The playground mounts it on
@@ -144,7 +151,8 @@ server.
 ## Status
 
 Early development. Implemented: the registry (core, dock/sidebar/spotlight
-variants, theming, server handler) and the visual-testing playground with unit
-tests. Not yet built: the `@bart-ui/cli` initializer, markdown ingestion
-(`bart sync`), framework adapters and example apps, provider factories,
-durable rate limiting, and the full Playwright/Testing Library suites.
+variants, theming, hardened server handler) and the visual-testing playground,
+with unit tests and a per-variant component contract suite. Not yet built: the
+`@bart-ui/cli` initializer, markdown ingestion (`bart sync`), framework
+adapters and example apps, provider factories, durable rate limiting, and the
+full Playwright browser suite.

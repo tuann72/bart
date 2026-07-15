@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type AnimationEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "../core/focus-trap";
-import { motionDisabled } from "../core/motion";
 import { shouldTriggerShortcut } from "../core/shortcut";
+import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
 import type { BartUIMessage } from "../core/types";
 import { ChatInput, MessageList } from "./chat-parts";
@@ -15,29 +15,33 @@ function lastExchange(messages: BartUIMessage[]): BartUIMessage[] {
   return lastUserIndex === -1 ? messages : messages.slice(lastUserIndex);
 }
 
+export interface BartSpotlightProps {
+  bart: UseBartChatReturn;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title?: string;
+  shortcutKey?: string;
+}
+
 export function BartSpotlight({
   bart,
   open,
   onOpenChange,
   title = "Bart",
   shortcutKey = "/",
-}: {
-  bart: UseBartChatReturn;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  title?: string;
-  shortcutKey?: string;
-}) {
+}: BartSpotlightProps) {
   const [showHistory, setShowHistory] = useState(false);
-  const [closing, setClosing] = useState(false);
   const restoreRef = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const showPanel = open || closing;
+  const { showPanel, closing, close, panelAnimationEnd } = useShellLifecycle({
+    open,
+    onOpenChange,
+  });
   useFocusTrap(containerRef, showPanel);
 
-  // Track what had focus before opening (shortcut or selection popup) and
-  // restore it on close, however the open state was toggled.
+  // The spotlight has no launcher, so it restores focus to whatever held it
+  // before opening (shortcut or selection popup), however open was toggled.
   useEffect(() => {
     if (open && !wasOpen.current) {
       wasOpen.current = true;
@@ -48,44 +52,20 @@ export function BartSpotlight({
     }
   }, [open]);
 
-  const finishClose = () => {
-    setClosing(false);
-    onOpenChange(false);
-  };
-
-  const close = () => {
-    if (closing) return;
-    if (motionDisabled()) {
-      finishClose();
-      return;
-    }
-    setClosing(true);
-  };
-
-  const onContainerAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
-    if (closing && event.target === event.currentTarget) finishClose();
-  };
-
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!showPanel && shouldTriggerShortcut(event, shortcutKey)) {
         event.preventDefault();
-        rememberFocus();
+        restoreRef.current =
+          document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
         onOpenChange(true);
-        return;
       }
-      if (open && event.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, closing, showPanel, shortcutKey, onOpenChange]);
-
-  const rememberFocus = () => {
-    restoreRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-  };
+  }, [showPanel, shortcutKey, onOpenChange]);
 
   if (!showPanel) {
     return (
@@ -113,7 +93,7 @@ export function BartSpotlight({
         role="dialog"
         aria-label={`${title} assistant`}
         className={`bart-spotlight-container${closing ? " bart-closing" : ""}`}
-        onAnimationEnd={onContainerAnimationEnd}
+        onAnimationEnd={panelAnimationEnd}
       >
         <div className="bart-glass bart-spotlight-inputcard">
           <ChatInput

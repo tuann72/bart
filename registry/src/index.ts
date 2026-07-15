@@ -12,6 +12,7 @@ export {
   MAX_SELECTION_ITEMS,
 } from "./core/selection";
 export {
+  isBartToolName,
   useBartChat,
   type BartToolName,
   type UseBartChatOptions,

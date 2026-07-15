@@ -1,0 +1,2 @@
+[test]
+preload = ["./registry/src/test-setup.ts"]
