@@ -36,8 +36,8 @@ bun run playground:server
 bun run playground
 ```
 
-Open <http://localhost:5173>. The playground is a deliberately blank three-page
-site (Home, Pricing, Docs) with a scripted mock model — deterministic, offline,
+Open <http://localhost:5173>. The playground is a fictional three-page burger
+site (Home, Pricing, FAQ) with a scripted mock model — deterministic, offline,
 no API key required. No provider adapter is installed anywhere in this
 repository, so development and automated tests cannot incur provider charges.
 The mock exercises the same handler, transport, streaming, and approval paths a
@@ -45,20 +45,25 @@ real provider would.
 
 Things to try:
 
-- Ask **“what do the plans cost?”** — streams an answer grounded in the mock
-  site content.
-- Ask **“take me to the docs”** — the model calls the `navigate` tool; you get
+- Ask **“how much is the Smoke Show?”** — streams a Markdown answer grounded in
+  the mock restaurant menu.
+- Ask **“take me to the FAQ”** — the model calls the `navigate` tool; you get
   an Allow/Deny confirmation card (navigation defaults to `confirm`).
-- Ask **“highlight the pricing table”** on the Pricing page — the `highlight`
-  tool pulses an overlay around the registered element (defaults to `auto`).
+- Ask **“highlight the combo deals”** on the Pricing page — the `highlight`
+  tool pulses an overlay around the registered section (defaults to `auto`).
 - **Select any page text** — an "Ask Bart" popup appears above the selection;
   clicking it opens the assistant with the selection attached as a removable
   pill. Select again to attach multiple items before asking; this works in the
   dock, sidebar, and spotlight variants.
+- Use Markdown in a message, or ask the model for a table, list, blockquote, or
+  code sample — both sides of the conversation render GitHub-flavored
+  Markdown with raw HTML disabled.
 - Switch variants in the header: **dock** (bottom tab → chat panel slides up),
   **sidebar** (edge tab → full-height panel that pushes the page aside on
   desktop; header has new-chat and close buttons), **spotlight** (press `/`
   for a glass command-palette-style prompt; Esc closes).
+- In the dock, drag its upper inside corner to resize it upward and inward.
+  The handle also supports arrow keys when focused.
 - Toggle dark mode; all Bart surfaces re-theme through CSS tokens.
 
 ## Development

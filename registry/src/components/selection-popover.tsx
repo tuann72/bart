@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type AnimationEvent } from "react";
+import { motionDisabled } from "../core/motion";
 import { normalizeSelection } from "../core/selection";
 import { BartIcon } from "./icons";
 
@@ -41,6 +42,27 @@ export function BartSelectionPopover({
   title?: string;
 }) {
   const [popover, setPopover] = useState<PopoverState | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  // Losing the selection plays the popup out rather than unmounting it, so the
+  // node survives long enough for the exit animation to run.
+  const dismiss = () => {
+    if (motionDisabled()) {
+      setPopover(null);
+      return;
+    }
+    setClosing(true);
+  };
+
+  const show = (next: PopoverState) => {
+    setClosing(false);
+    setPopover(next);
+  };
+
+  // Fires for the entrance animation too, hence the `closing` guard.
+  const onAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
+    if (closing && event.target === event.currentTarget) setPopover(null);
+  };
 
   useEffect(() => {
     // Selections are inspected after pointer/keyboard interaction settles,
@@ -48,10 +70,10 @@ export function BartSelectionPopover({
     const update = () => {
       const found = eligibleSelection();
       if (!found) {
-        setPopover(null);
+        dismiss();
         return;
       }
-      setPopover({
+      show({
         x: found.rect.left + found.rect.width / 2,
         y: found.rect.top,
         text: found.text,
@@ -60,14 +82,14 @@ export function BartSelectionPopover({
     const onPointerUp = () => requestAnimationFrame(update);
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setPopover(null);
+        dismiss();
         return;
       }
       if (event.shiftKey || event.key === "Shift") requestAnimationFrame(update);
     };
     const onSelectionChange = () => {
       const selection = window.getSelection();
-      if (!selection || selection.isCollapsed) setPopover(null);
+      if (!selection || selection.isCollapsed) dismiss();
     };
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("keyup", onKeyUp);
@@ -84,8 +106,10 @@ export function BartSelectionPopover({
   return (
     <div
       data-bart-ui="selection-popover"
+      data-state={closing ? "closed" : "open"}
       className="bart-selection-popover"
       style={{ left: popover.x, top: popover.y }}
+      onAnimationEnd={onAnimationEnd}
     >
       <button
         type="button"
@@ -93,7 +117,7 @@ export function BartSelectionPopover({
         // Keep the selection alive: mousedown would collapse it before click.
         onPointerDown={(event) => event.preventDefault()}
         onClick={() => {
-          setPopover(null);
+          dismiss();
           window.getSelection()?.removeAllRanges();
           onAsk(popover.text);
         }}

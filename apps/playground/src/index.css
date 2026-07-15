@@ -8,6 +8,21 @@
 /* Class-based dark mode: the playground toggles .dark on <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* A warm restaurant theme for the generated Stackhouse fixture. */
+:root {
+  --bart-primary: oklch(0.48 0.18 35);
+  --bart-primary-foreground: oklch(0.985 0.005 80);
+  --bart-accent: oklch(0.78 0.15 75);
+  --bart-accent-foreground: oklch(0.22 0.04 45);
+}
+
+.dark {
+  --bart-primary: oklch(0.72 0.16 55);
+  --bart-primary-foreground: oklch(0.2 0.04 35);
+  --bart-accent: oklch(0.8 0.14 95);
+  --bart-accent-foreground: oklch(0.2 0.04 45);
+}
+
 /* Tailwind v4 preflight uses the browser-default cursor on buttons;
    restore pointer for anything clickable. */
 @layer base {

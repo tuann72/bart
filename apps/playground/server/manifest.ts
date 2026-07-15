@@ -6,29 +6,127 @@ export const serverManifest: BartServerManifest = {
     {
       route: "/",
       title: "Home",
-      description: "Landing page for the Bart playground.",
-      keywords: ["home", "playground", "bart"],
-      targets: [{ id: "hero", description: "The hero headline block." }],
-      body: "# Bart Playground\n\nThis is a deliberately blank demo site used to test the Bart assistant. It has three pages: Home, Pricing, and Docs.",
+      description:
+        "Stackhouse Burger Co. location, hours, and signature burgers.",
+      keywords: [
+        "home",
+        "Stackhouse",
+        "burgers",
+        "location",
+        "hours",
+        "Chicago",
+        "West Loop",
+      ],
+      targets: [
+        { id: "home-hero", description: "The Stackhouse welcome and tagline." },
+        {
+          id: "signature-burgers",
+          description: "The three featured signature burgers.",
+        },
+        {
+          id: "visit-us",
+          description: "The restaurant address, hours, and pickup timing.",
+        },
+      ],
+      body: `# Stackhouse Burger Co.
+
+Stackhouse serves crispy-edged smash burgers, hand-cut fries, and hand-spun shakes from a neighborhood counter at **42 Griddle Lane in Chicago's West Loop**, two blocks west of Morgan Station.
+
+## Hours
+
+- Monday–Thursday: 11am–10pm
+- Friday–Saturday: 11am–midnight
+- Sunday: 11am–9pm
+
+## Signature burgers
+
+- **The Stackhouse — $13:** Two smashed patties, sharp cheddar, griddled onions, house pickles, and Stack Sauce.
+- **Smoke Show — $14:** Two smashed patties, smoked gouda, crispy onions, barbecue glaze, and pepper mayo.
+- **Garden Crunch — $11:** Crispy chickpea patty, lettuce, tomato, pickles, and lemon-herb mayo. Vegetarian; remove the mayo to make it vegan.
+
+Pickup orders are usually ready in 15–20 minutes.`,
     },
     {
       route: "/pricing",
       title: "Pricing",
-      description: "Plans and billing information.",
-      keywords: ["pricing", "plans", "billing", "subscriptions", "enterprise"],
-      targets: [
-        { id: "pricing-comparison", description: "The plan comparison table." },
-        { id: "pricing-faq", description: "Frequently asked billing questions." },
+      description: "Burger menu, sides, shakes, and combo pricing.",
+      keywords: [
+        "pricing",
+        "menu",
+        "price",
+        "cost",
+        "burger",
+        "combo",
+        "fries",
+        "shake",
       ],
-      body: "# Pricing\n\nThe playground offers three fictional plans: Free ($0), Pro ($20/month), and Enterprise (contact us). All paid plans are billed monthly and can be cancelled at any time. The plan comparison table lists every feature side by side.",
+      targets: [
+        { id: "burger-menu", description: "Burger descriptions and prices." },
+        {
+          id: "combo-deals",
+          description: "Combo upgrade, sides, shakes, and kids pricing.",
+        },
+      ],
+      body: `# Menu and pricing
+
+Every Stackhouse burger is smashed to order and served on a toasted potato roll.
+
+| Burger | Price | What's on it |
+| --- | ---: | --- |
+| The Stackhouse | $13 | Two patties, sharp cheddar, griddled onions, house pickles, Stack Sauce |
+| Smoke Show | $14 | Two patties, smoked gouda, crispy onions, barbecue glaze, pepper mayo |
+| Garden Crunch | $11 | Crispy chickpea patty, lettuce, tomato, pickles, lemon-herb mayo |
+
+## Combos, sides, and shakes
+
+- Add hand-cut fries and a fountain drink to any burger for **$5**. Fountain drinks include free refills while dining in.
+- Swap the combo fries for onion rings for **$2 more**.
+- Hand-cut fries: **$4**
+- Onion rings: **$5**
+- Hand-spun shake: **$6**
+- Kids combo: **$8**`,
     },
     {
-      route: "/docs",
-      title: "Docs",
-      description: "Getting-started documentation.",
-      keywords: ["docs", "documentation", "quickstart", "install"],
-      targets: [{ id: "quickstart", description: "The quickstart steps." }],
-      body: "# Docs\n\nQuickstart: run the initializer, add your provider key to the project-root .env file (.env.local may override it), write markdown in content/bart, run bart sync, and mount the chat component.",
+      route: "/faq",
+      title: "FAQ",
+      description: "Ordering, location, reservations, and dietary answers.",
+      keywords: [
+        "FAQ",
+        "questions",
+        "pickup",
+        "delivery",
+        "reservations",
+        "vegetarian",
+        "vegan",
+        "gluten",
+        "allergies",
+      ],
+      targets: [
+        {
+          id: "ordering-faq",
+          description: "Pickup, delivery, reservation, and location answers.",
+        },
+        {
+          id: "dietary-faq",
+          description: "Vegetarian, vegan, gluten, allergy, and fryer notes.",
+        },
+      ],
+      body: `# Frequently asked questions
+
+## Orders and visits
+
+**Can I order ahead?** Yes. Pickup orders are usually ready in 15–20 minutes. Delivery is available within five miles of the restaurant.
+
+**Do you take reservations?** Stackhouse is walk-in only. Parties of eight or more can call ahead, and the team will do its best to seat everyone together.
+
+**Where are you located?** 42 Griddle Lane in Chicago's West Loop, two blocks west of Morgan Station.
+
+## Dietary notes
+
+- **Vegetarian and vegan:** The Garden Crunch is vegetarian and can be made vegan without lemon-herb mayo.
+- **Gluten-aware:** Any burger can be served in a lettuce wrap, but the shared kitchen is not certified gluten-free.
+- **Allergies:** Guests should tell the cashier before ordering. Dairy, egg, wheat, soy, and sesame are handled in the kitchen.
+- **Cooking oil:** Fries and onion rings are cooked in refined peanut oil in a shared fryer.`,
     },
   ],
 };

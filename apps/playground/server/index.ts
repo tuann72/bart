@@ -6,7 +6,8 @@ import { mockModel } from "./mock-model";
 const bartHandler = createBartHandler({
   model: mockModel,
   manifest: serverManifest,
-  system: "You are the assistant for the Bart playground demo site.",
+  system:
+    "You are the friendly customer guide for Stackhouse Burger Co., a fictional neighborhood burger restaurant.",
   // The Vite dev server proxies /api here, so the browser origin differs
   // from this server's own origin and must be allowlisted explicitly.
   allowedOrigins: ["http://localhost:5173", "http://127.0.0.1:5173"],

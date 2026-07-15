@@ -53,19 +53,62 @@ function toolCallParts(
 }
 
 function pickRoute(text: string): string {
-  if (text.includes("pricing") || text.includes("plan")) return "/pricing";
-  if (text.includes("doc") || text.includes("quickstart")) return "/docs";
+  if (
+    text.includes("faq") ||
+    text.includes("question") ||
+    text.includes("allerg") ||
+    text.includes("dietary")
+  ) {
+    return "/faq";
+  }
+  if (
+    text.includes("pricing") ||
+    text.includes("menu") ||
+    text.includes("price") ||
+    text.includes("combo")
+  ) {
+    return "/pricing";
+  }
   if (text.includes("home")) return "/";
   return "/pricing";
 }
 
 function pickTarget(text: string): string {
-  if (text.includes("faq")) return "pricing-faq";
-  if (text.includes("pricing") || text.includes("table") || text.includes("plan")) {
-    return "pricing-comparison";
+  if (
+    text.includes("dietary") ||
+    text.includes("vegan") ||
+    text.includes("vegetarian") ||
+    text.includes("gluten") ||
+    text.includes("allerg")
+  ) {
+    return "dietary-faq";
   }
-  if (text.includes("quickstart")) return "quickstart";
-  return "hero";
+  if (
+    text.includes("faq") ||
+    text.includes("order") ||
+    text.includes("delivery") ||
+    text.includes("reservation")
+  ) {
+    return "ordering-faq";
+  }
+  if (text.includes("combo") || text.includes("side") || text.includes("shake")) {
+    return "combo-deals";
+  }
+  if (
+    text.includes("pricing") ||
+    text.includes("price") ||
+    text.includes("menu") ||
+    text.includes("burger")
+  ) {
+    return "burger-menu";
+  }
+  if (text.includes("hour") || text.includes("location") || text.includes("visit")) {
+    return "visit-us";
+  }
+  if (text.includes("signature") || text.includes("favorite")) {
+    return "signature-burgers";
+  }
+  return "home-hero";
 }
 
 function respond(prompt: LanguageModelV2Prompt): {
@@ -115,7 +158,7 @@ function respond(prompt: LanguageModelV2Prompt): {
       const excerpt = quote.length > 80 ? `${quote.slice(0, 80)}…` : quote;
       return {
         parts: textParts(
-          `You selected: “${excerpt}”. In the real product I'd answer using the site content around that passage — here in the playground this canned reply just proves the quoted selection reached the model.`,
+          `You selected: “${excerpt}”. That passage is part of the Stackhouse site. This scripted reply confirms the selected text reached the model; switch to a real provider for a contextual answer.`,
         ),
         finishReason: "stop",
       };
@@ -143,10 +186,71 @@ function respond(prompt: LanguageModelV2Prompt): {
     };
   }
 
-  if (text.includes("price") || text.includes("cost") || text.includes("plan")) {
+  if (
+    text.includes("vegetarian") ||
+    text.includes("vegan") ||
+    text.includes("gluten") ||
+    text.includes("allerg") ||
+    text.includes("peanut")
+  ) {
     return {
       parts: textParts(
-        "The playground has three fictional plans: Free ($0), Pro ($20/month), and Enterprise (contact us). Paid plans are billed monthly and can be cancelled at any time. Say \"highlight the pricing table\" and I'll point at it, or \"go to pricing\" to visit the page.",
+        "The **Garden Crunch** is vegetarian and can be made vegan without mayo. Any burger can come in a lettuce wrap, but the kitchen is not certified gluten-free. Fries and rings use refined peanut oil in a shared fryer; tell the cashier about any allergy before ordering.",
+      ),
+      finishReason: "stop",
+    };
+  }
+
+  if (
+    text.includes("price") ||
+    text.includes("cost") ||
+    text.includes("menu") ||
+    text.includes("burger") ||
+    text.includes("combo")
+  ) {
+    return {
+      parts: textParts(
+        `## Burger prices
+
+| Burger | Price |
+| --- | ---: |
+| The Stackhouse | $13 |
+| Smoke Show | $14 |
+| Garden Crunch | $11 |
+
+Add fries and a fountain drink for **$5**. Say “highlight the burger menu” or “take me to pricing” to see more.`,
+      ),
+      finishReason: "stop",
+    };
+  }
+
+  if (
+    text.includes("hour") ||
+    text.includes("open") ||
+    text.includes("location") ||
+    text.includes("where")
+  ) {
+    return {
+      parts: textParts(
+        `Stackhouse is at **42 Griddle Lane in Chicago's West Loop**, two blocks west of Morgan Station.
+
+- **Mon–Thu:** 11am–10pm
+- **Fri–Sat:** 11am–midnight
+- **Sunday:** 11am–9pm`,
+      ),
+      finishReason: "stop",
+    };
+  }
+
+  if (
+    text.includes("pickup") ||
+    text.includes("delivery") ||
+    text.includes("reservation") ||
+    text.includes("order ahead")
+  ) {
+    return {
+      parts: textParts(
+        "Pickup usually takes **15–20 minutes**, and delivery is available within five miles. Stackhouse is walk-in only; parties of eight or more can call ahead for help sitting together.",
       ),
       finishReason: "stop",
     };
@@ -154,7 +258,12 @@ function respond(prompt: LanguageModelV2Prompt): {
 
   return {
     parts: textParts(
-      "Hi! I'm Bart running on the scripted mock model — no API key involved. I stream deterministic answers so you can test the UI. Try: \"what do the plans cost?\", \"highlight the pricing table\", or \"take me to the docs\".",
+      `Welcome to **Stackhouse Burger Co.** I can help with the menu, hours, ordering, and dietary questions.
+
+Try asking:
+- “How much is the Smoke Show?”
+- “Highlight the combo deals”
+- “Take me to the FAQ”`,
     ),
     finishReason: "stop",
   };

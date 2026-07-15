@@ -2,11 +2,46 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getToolName, isToolUIPart, type ToolUIPart } from "ai";
+import { motionDisabled } from "../core/motion";
 import type { BartToolName, UseBartChatReturn } from "../core/use-bart-chat";
 import type { BartToolOutput, BartTools, BartUIMessage } from "../core/types";
 import { CheckIcon, CloseIcon, SendIcon, StopIcon } from "./icons";
+import { MarkdownContent } from "./markdown";
 
 type BartToolPart = ToolUIPart<BartTools>;
+
+const THINKING_WORDS = [
+  "Pondering",
+  "Tinkering",
+  "Connecting dots",
+  "Rummaging",
+  "Cooking up an answer",
+] as const;
+
+function ThinkingIndicator() {
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    if (motionDisabled()) return;
+    const timer = window.setInterval(() => {
+      setWordIndex((current) => (current + 1) % THINKING_WORDS.length);
+    }, 1_600);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="bart-typing" role="status" aria-label="Bart is thinking">
+      <span className="bart-typing-label" aria-hidden="true">
+        {THINKING_WORDS[wordIndex]}
+      </span>
+      <span className="bart-typing-dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </div>
+  );
+}
 
 function toolCallLabel(name: BartToolName, input: unknown): string {
   if (name === "navigate") {
@@ -99,6 +134,17 @@ export function MessageList({
   className?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessage = messages.at(-1);
+  const assistantHasVisibleOutput =
+    lastMessage?.role === "assistant" &&
+    lastMessage.parts.some(
+      (part) =>
+        (part.type === "text" && part.text.trim().length > 0) ||
+        isToolUIPart<BartTools>(part),
+    );
+  const showThinking =
+    bart.status === "submitted" ||
+    (bart.status === "streaming" && !assistantHasVisibleOutput);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -113,8 +159,8 @@ export function MessageList({
     >
       {messages.length === 0 && (
         <p className="bart-muted bart-empty-hint">
-          Ask about this site — try “highlight the pricing table” or “take me
-          to the docs”.
+          Ask about this site, highlight something on the page, or navigate to
+          another section.
         </p>
       )}
       {messages.map((message) => (
@@ -127,9 +173,7 @@ export function MessageList({
           {message.parts.map((part, i) => {
             if (part.type === "text") {
               return (
-                <p key={i} className="bart-msg-text">
-                  {part.text}
-                </p>
+                <MarkdownContent key={i}>{part.text}</MarkdownContent>
               );
             }
             if (isToolUIPart<BartTools>(part)) {
@@ -139,13 +183,7 @@ export function MessageList({
           })}
         </div>
       ))}
-      {bart.status === "submitted" && (
-        <div className="bart-typing" aria-label="Bart is thinking">
-          <span />
-          <span />
-          <span />
-        </div>
-      )}
+      {showThinking && <ThinkingIndicator />}
       {bart.error && (
         <div className="bart-error" role="alert">
           <p>Something went wrong: {bart.error.message}</p>

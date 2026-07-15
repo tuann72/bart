@@ -14,8 +14,6 @@
   --bart-border: oklch(0.91 0.005 262);
   --bart-glass: oklch(1 0 0 / 0.4);
   --bart-glass-sheen: oklch(1 0 0 / 0.35);
-  --bart-glass-edge: oklch(1 0 0 / 0.55);
-  --bart-glass-highlight: oklch(1 0 0 / 0.6);
   --bart-radius: 0.75rem;
 }
 
@@ -30,8 +28,6 @@
   --bart-border: oklch(0.32 0.01 262);
   --bart-glass: oklch(0.22 0.015 262 / 0.5);
   --bart-glass-sheen: oklch(1 0 0 / 0.08);
-  --bart-glass-edge: oklch(1 0 0 / 0.16);
-  --bart-glass-highlight: oklch(1 0 0 / 0.18);
 }
 
 @theme inline {
@@ -121,10 +117,19 @@
 
 /* ---------- selection popover ---------- */
 
+/* The resting transform lifts the popup above the selection; the entrance and
+   exit keyframes must carry that translate, so they restate it in full. */
 .bart-selection-popover {
   position: fixed;
   z-index: 70;
   transform: translate(-50%, calc(-100% - 0.5rem));
+  animation: bart-popover-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Held mounted until animationend so this can play out. */
+.bart-selection-popover[data-state="closed"] {
+  pointer-events: none;
+  animation: bart-popover-out 0.12s ease-in forwards;
 }
 
 .bart-selection-popover .bart-btn-primary {
@@ -249,7 +254,81 @@
   gap: 0.375rem;
 }
 
-.bart-msg-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+/* ---------- message Markdown ---------- */
+
+.bart-markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.bart-markdown > :first-child { margin-top: 0; }
+.bart-markdown > :last-child { margin-bottom: 0; }
+.bart-markdown p { margin: 0 0 0.55rem; }
+.bart-markdown h1,
+.bart-markdown h2,
+.bart-markdown h3,
+.bart-markdown h4 {
+  margin: 0.8rem 0 0.35rem;
+  line-height: 1.25;
+  font-weight: 650;
+}
+.bart-markdown h1 { font-size: 1.2rem; }
+.bart-markdown h2 { font-size: 1.1rem; }
+.bart-markdown h3,
+.bart-markdown h4 { font-size: 1rem; }
+.bart-markdown ul,
+.bart-markdown ol {
+  margin: 0.4rem 0 0.65rem;
+  padding-left: 1.35rem;
+}
+.bart-markdown li + li { margin-top: 0.2rem; }
+.bart-markdown blockquote {
+  margin: 0.4rem 0 0.65rem;
+  padding-left: 0.7rem;
+  border-left: 3px solid currentColor;
+  opacity: 0.82;
+}
+.bart-markdown code {
+  border-radius: 0.3rem;
+  background: color-mix(in oklch, currentColor 10%, transparent);
+  padding: 0.08rem 0.3rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.85em;
+}
+.bart-markdown pre {
+  max-width: 100%;
+  margin: 0.5rem 0 0.7rem;
+  overflow-x: auto;
+  border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
+  border-radius: calc(var(--bart-radius) - 0.2rem);
+  background: color-mix(in oklch, currentColor 7%, transparent);
+  padding: 0.65rem 0.75rem;
+}
+.bart-markdown pre code { background: transparent; padding: 0; }
+.bart-markdown table {
+  display: block;
+  max-width: 100%;
+  margin: 0.5rem 0 0.7rem;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.bart-markdown th,
+.bart-markdown td {
+  border: 1px solid color-mix(in oklch, currentColor 20%, transparent);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.bart-markdown th { font-weight: 650; }
+.bart-markdown a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+.bart-markdown hr {
+  margin: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid color-mix(in oklch, currentColor 22%, transparent);
+}
 
 .bart-tool-row {
   font-size: 0.8125rem;
@@ -269,16 +348,25 @@
 .bart-tool-question { margin: 0 0 0.5rem; font-size: 0.8125rem; }
 .bart-tool-actions { display: flex; gap: 0.5rem; }
 
-.bart-typing { display: flex; gap: 0.25rem; padding: 0.25rem 0; }
-.bart-typing span {
+.bart-typing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+  color: var(--bart-muted-foreground);
+  font-size: 0.8125rem;
+}
+.bart-typing-label { min-width: 4.5rem; }
+.bart-typing-dots { display: inline-flex; gap: 0.25rem; }
+.bart-typing-dots > span {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 50%;
   background: var(--bart-muted-foreground);
   animation: bart-pulse 1.2s ease-in-out infinite;
 }
-.bart-typing span:nth-child(2) { animation-delay: 0.15s; }
-.bart-typing span:nth-child(3) { animation-delay: 0.3s; }
+.bart-typing-dots > span:nth-child(2) { animation-delay: 0.15s; }
+.bart-typing-dots > span:nth-child(3) { animation-delay: 0.3s; }
 
 .bart-error {
   border: 1px solid oklch(0.6 0.2 25);
@@ -377,7 +465,10 @@
   z-index: 40;
   width: 24rem;
   height: 28rem;
-  max-height: 85dvh;
+  min-width: 20rem;
+  min-height: 20rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  max-height: min(52rem, 92dvh);
   display: flex;
   flex-direction: column;
   background: var(--bart-surface);
@@ -387,6 +478,49 @@
   box-shadow: 0 -8px 40px oklch(0 0 0 / 0.18);
   animation: bart-dock-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.bart-dock-resize {
+  position: absolute;
+  top: -0.4rem;
+  left: -0.4rem;
+  z-index: 2;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: 0;
+  background: transparent;
+  color: var(--bart-primary-foreground);
+  cursor: nwse-resize;
+  touch-action: none;
+  opacity: 0.25;
+}
+.bart-dock-resize::before {
+  content: "";
+  position: absolute;
+  top: 0.42rem;
+  left: 0.42rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  border-radius: 0.12rem 0 0;
+}
+.bart-dock-resize:hover,
+.bart-dock-resize:focus-visible { opacity: 1; }
+.bart-dock-resize:focus-visible {
+  outline: 2px solid var(--bart-accent);
+  outline-offset: 1px;
+}
+.bart-dock-panel.bart-dock-left .bart-dock-resize {
+  right: -0.4rem;
+  left: auto;
+  cursor: nesw-resize;
+}
+.bart-dock-panel.bart-dock-left .bart-dock-resize::before {
+  right: 0.42rem;
+  left: auto;
+  border-right: 2px solid currentColor;
+  border-left: 0;
+  border-radius: 0 0.12rem 0 0;
+}
 .bart-dock-panel.bart-closing {
   animation: bart-dock-out 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -395,10 +529,13 @@
   .bart-dock-panel {
     left: 0 !important;
     right: 0 !important;
-    width: auto;
-    height: 75dvh;
+    width: auto !important;
+    height: 75dvh !important;
+    min-width: 0;
+    min-height: 0;
     border-radius: var(--bart-radius) var(--bart-radius) 0 0;
   }
+  .bart-dock-resize { display: none; }
 }
 
 /* ---------- sidebar variant ---------- */
@@ -507,9 +644,17 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
 }
 
 /*
- * Glassmorphism: a translucent tint over a strong saturated blur, a diagonal
- * sheen so light appears to play across the surface, and bright top/edge
- * highlights that read as a pane of glass. All tunable via --bart-glass-*.
+ * Glassmorphism: a translucent tint over a strong saturated blur, plus a
+ * diagonal sheen so light appears to play across the surface. Tunable via
+ * --bart-glass and --bart-glass-sheen.
+ *
+ * Deliberately carries no border and no box-shadow. Pairing either with
+ * backdrop-filter on this element makes the browser leave a pale unfiltered
+ * band inside the whole perimeter — the blur visibly stops short of the edge.
+ * The band is fixed-width and survives changes to blur radius, border alpha,
+ * corner radius, and shadow geometry; only dropping both properties clears it.
+ * To get the edge and drop shadow back, they have to live on a wrapper element
+ * so that no single element has both them and the filter.
  */
 .bart-glass {
   background:
@@ -517,12 +662,7 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
     var(--bart-glass);
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border: 1px solid var(--bart-glass-edge);
   border-radius: calc(var(--bart-radius) + 0.25rem);
-  box-shadow:
-    0 24px 80px oklch(0 0 0 / 0.3),
-    inset 0 1px 0 var(--bart-glass-highlight),
-    inset 0 0 32px oklch(1 0 0 / 0.05);
 }
 
 @supports not (backdrop-filter: blur(1px)) {
@@ -638,20 +778,31 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
   to { opacity: 1; }
 }
 
+@keyframes bart-popover-in {
+  from { opacity: 0; transform: translate(-50%, calc(-100% - 0.125rem)); }
+  to { opacity: 1; transform: translate(-50%, calc(-100% - 0.5rem)); }
+}
+
+@keyframes bart-popover-out {
+  from { opacity: 1; transform: translate(-50%, calc(-100% - 0.5rem)); }
+  to { opacity: 0; transform: translate(-50%, calc(-100% - 0.25rem)); }
+}
+
 @keyframes bart-highlight-pulse {
   0%, 100% { box-shadow: 0 0 0 4px color-mix(in oklch, var(--bart-accent) 35%, transparent); }
   50% { box-shadow: 0 0 0 10px color-mix(in oklch, var(--bart-accent) 18%, transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bart-typing span,
+  .bart-typing-dots > span,
   .bart-highlight-overlay,
   .bart-sidebar-panel,
   .bart-dock-panel,
   .bart-dock-tab,
   .bart-sidebar-tab,
   .bart-spotlight-container,
-  .bart-spotlight-backdrop {
+  .bart-spotlight-backdrop,
+  .bart-selection-popover {
     animation: none;
   }
   body.bart-sidebar-push {

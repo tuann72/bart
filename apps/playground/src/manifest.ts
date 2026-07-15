@@ -6,23 +6,46 @@ export const publicManifest: BartPublicManifest = {
     {
       route: "/",
       title: "Home",
-      description: "Landing page for the Bart playground.",
-      targets: [{ id: "hero", description: "The hero headline block." }],
+      description:
+        "Stackhouse Burger Co. location, hours, and signature burgers.",
+      targets: [
+        { id: "home-hero", description: "The Stackhouse welcome and tagline." },
+        {
+          id: "signature-burgers",
+          description: "The three featured signature burgers.",
+        },
+        {
+          id: "visit-us",
+          description: "The restaurant address, hours, and pickup timing.",
+        },
+      ],
     },
     {
       route: "/pricing",
       title: "Pricing",
-      description: "Plans and billing information.",
+      description: "Burger menu, sides, shakes, and combo pricing.",
       targets: [
-        { id: "pricing-comparison", description: "The plan comparison table." },
-        { id: "pricing-faq", description: "Frequently asked billing questions." },
+        { id: "burger-menu", description: "Burger descriptions and prices." },
+        {
+          id: "combo-deals",
+          description: "Combo upgrade, sides, shakes, and kids pricing.",
+        },
       ],
     },
     {
-      route: "/docs",
-      title: "Docs",
-      description: "Getting-started documentation.",
-      targets: [{ id: "quickstart", description: "The quickstart steps." }],
+      route: "/faq",
+      title: "FAQ",
+      description: "Ordering, location, reservations, and dietary answers.",
+      targets: [
+        {
+          id: "ordering-faq",
+          description: "Pickup, delivery, reservation, and location answers.",
+        },
+        {
+          id: "dietary-faq",
+          description: "Vegetarian, vegan, gluten, allergy, and fryer notes.",
+        },
+      ],
     },
   ],
 };

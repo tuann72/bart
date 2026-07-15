@@ -23,6 +23,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# local provider smoke tests (never committed or distributed)
+apps/playground/server/*.local.ts
+
 
 # Finder (MacOS) folder config
 .DS_Store

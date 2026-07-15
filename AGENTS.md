@@ -21,15 +21,26 @@ Implemented and verified:
   ways). Panels slide in/out; the launcher tabs animate back in on close so
   the panel reads as shrinking into the tab; the sidebar pushes page content
   aside through body margin classes with a matching transition; the spotlight
-  fades/scales in, vertically centered. `prefers-reduced-motion` disables all
-  Bart animation (`core/motion.ts` also skips the exit-animation state).
+  fades/scales in, vertically centered; the selection popover fades and lifts
+  in, and fades back out when the selection is lost. `prefers-reduced-motion`
+  disables all Bart animation (`core/motion.ts` also skips the exit-animation
+  state). Anything with an exit animation follows one pattern: `motionDisabled()`
+  unmounts immediately, otherwise a `closing` flag flips a `data-state` attribute
+  and `onAnimationEnd` does the unmount — never a `setTimeout` duplicating the
+  CSS duration in JS.
 - Iconography: shared SVG icons in `components/icons.tsx` (circular Bart
   mark, close, send, stop, check, refresh) — no emoji glyphs in Bart UI. The
   send/stop control is a round icon button inside the combined input shell.
-- `apps/playground/` — a deliberately blank Vite page for visual testing, plus
-  a Hono API server running a scripted mock model (offline, deterministic, no
-  API key). No provider adapter is installed anywhere in the repository. This
-  app doubles as the future Playwright host.
+- User and assistant messages render safe GitHub-flavored Markdown through
+  `react-markdown` and `remark-gfm`; raw HTML is disabled. Thinking states
+  rotate playful filler labels alongside the dots.
+- The dock resizes from its upper inside corner, capped at 32rem wide and
+  `min(52rem, 92dvh)` tall; its mobile layout remains fixed.
+- `apps/playground/` — a fictional Stackhouse Burger Co. site with Home,
+  Pricing, and FAQ routes for visual and grounded-context testing, plus a Hono
+  API server running a scripted mock model (offline, deterministic, no API
+  key). No provider adapter is installed anywhere in the repository. This app
+  doubles as the future Playwright host.
 - Unit tests (`bun test`, 37 passing) for shortcut suppression, route/target
   validation, and context selection.
 
@@ -37,8 +48,7 @@ Planned but NOT yet built: the `@bart-ui/cli` package (`init`, `add <variant>`,
 `sync`, `doctor`, `update`), markdown ingestion via `gray-matter` (manifests are
 currently hand-written in the playground), Next.js/React Router adapters and
 example apps, provider factories (OpenAI/Anthropic/Google),
-durable rate limiting, React Testing Library + Playwright suites, markdown
-rendering of assistant output.
+durable rate limiting, React Testing Library + Playwright suites.
 
 ## Workspace layout
 
@@ -85,9 +95,9 @@ From the repo root:
   config from scratch. Inspect generated files before making targeted edits.
 - The playground intentionally uses Vite (not `Bun.serve` HTML imports): it
   must mirror what real consumers run.
-- Pinned stack: AI SDK v5 (`ai@^5`, `@ai-sdk/react@^2`), `zod@^4`, Tailwind v4,
-  Hono v4, React 19. Verify API shapes against `node_modules` types rather than
-  assuming.
+- Pinned stack: AI SDK v5 (`ai@^5`, `@ai-sdk/react@^2`), `zod@^4`,
+  `react-markdown@^10`, `remark-gfm@^4`, Tailwind v4, Hono v4, React 19.
+  Verify API shapes against `node_modules` types rather than assuming.
 - Registry code must satisfy the playground's strict tsconfig (it is
   typechecked through the app's `tsc -b`): `noUnusedLocals`,
   `verbatimModuleSyntax`, `noUncheckedIndexedAccess`.
@@ -109,6 +119,13 @@ From the repo root:
   explicitly; `createBartHandler` defaults to same-origin otherwise.
 - Tailwind cannot auto-detect the symlinked registry package; the playground's
   `index.css` declares `@source "../../../registry/src"`.
+- **`.bart-glass` carries no `border` and no `box-shadow` on purpose.** Pairing
+  either with `backdrop-filter` on the same element leaves a pale unfiltered
+  band around the whole inside perimeter — the blur visibly stops short of the
+  edge. The band is fixed-width and unaffected by blur radius, border alpha,
+  corner radius, or shadow geometry, so it does not look like it comes from
+  those properties; only removing both clears it. An edge or drop shadow has to
+  live on a wrapper element instead, so no element has both them and the filter.
 - The playground `<BartChat key={variant}>` remounts on variant switch, so the
   conversation resets — intentional for the playground.
 
@@ -160,13 +177,14 @@ From the repo root:
     uses `VITE_`/`NEXT_PUBLIC_` provider-key variables.
 12. **Provider neutrality**: no provider adapter (`@ai-sdk/openai`,
     `@ai-sdk/anthropic`, `@ai-sdk/google`, …) is a dependency of any package in
-    this repository, including the playground. The registry depends only on
-    `ai`, `@ai-sdk/react`, and `zod`; models arrive through the `model` option
-    of `createBartHandler`. Provider adapters are installed by the future CLI
-    into the *consumer's* project, based on the provider they select. The
-    playground runs the scripted mock model only. If a real-provider smoke test
-    is ever needed, it belongs behind a separate, uncommitted local setup —
-    never in the committed dependency tree.
+    this repository, including the playground. The registry's model integration
+    depends only on `ai`, `@ai-sdk/react`, and `zod`; its UI additionally uses
+    provider-neutral Markdown renderers. Models arrive through the `model`
+    option of `createBartHandler`. Provider adapters are installed by the
+    future CLI into the *consumer's* project, based on the provider they
+    select. The playground runs the scripted mock model only. If a
+    real-provider smoke test is ever needed, it belongs behind a separate,
+    uncommitted local setup — never in the committed dependency tree.
 13. **Distribution allowlist**: consumer installs include only the runtime
     files declared by the selected registry items and their declared consumer
     dependencies. Never bundle `apps/`, `*.test.*`, fixtures, screenshots,
