@@ -101,6 +101,24 @@ From the repo root:
 - `bun run playground:server` — Hono mock API on :8787
 - `bun run playground` — Vite dev server on :5173 (run both for visual testing)
 
+## Working efficiently
+
+- `registry/src/styles.css` is ~1000 lines — don't read it whole. Every section
+  carries a `/* ---------- name ---------- */` marker: grep the marker, then read
+  from that offset. Same for `apps/playground/src/App.tsx` (~490).
+- Verification ladder, climbed only as far as the change needs: `bun run
+  typecheck` → `bun test` (37 unit tests, no DOM) → a scripted Playwright run
+  against the playground (slow; needs both servers up). Screenshots are the most
+  expensive output in this repo: take one only when the question is genuinely
+  visual (contrast, a band artifact, spacing), clip to the element rather than
+  the page, and never as a routine "looks right" check.
+- Cursor, focus, and glass bugs here are cascade bugs, not paint bugs. Read the
+  Gotchas section and check specificity before opening a browser.
+- Don't re-read a file to confirm an edit landed; the edit fails loudly if it
+  didn't.
+- Commit at checkpoints. Uncommitted work is the expensive thing to lose when a
+  long session compacts; `git log` and `git diff` are cheap context recovery.
+
 ## Conventions and hygiene rules
 
 - Bun only: `bun add`/`bun remove` for dependencies (never hand-edit versions),
