@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type AnimationEvent } from "react";
 import { useFocusTrap } from "../core/focus-trap";
+import { motionDisabled } from "../core/motion";
 import { shouldTriggerShortcut } from "../core/shortcut";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
 import type { BartUIMessage } from "../core/types";
 import { ChatInput, MessageList } from "./chat-parts";
+import { RefreshIcon } from "./icons";
 
 /** Last user message plus everything after it — the current exchange. */
 function lastExchange(messages: BartUIMessage[]): BartUIMessage[] {
@@ -27,10 +29,12 @@ export function BartSpotlight({
   shortcutKey?: string;
 }) {
   const [showHistory, setShowHistory] = useState(false);
+  const [closing, setClosing] = useState(false);
   const restoreRef = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(containerRef, open);
+  const showPanel = open || closing;
+  useFocusTrap(containerRef, showPanel);
 
   // Track what had focus before opening (shortcut or selection popup) and
   // restore it on close, however the open state was toggled.
@@ -44,19 +48,37 @@ export function BartSpotlight({
     }
   }, [open]);
 
+  const finishClose = () => {
+    setClosing(false);
+    onOpenChange(false);
+  };
+
+  const close = () => {
+    if (closing) return;
+    if (motionDisabled()) {
+      finishClose();
+      return;
+    }
+    setClosing(true);
+  };
+
+  const onContainerAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
+    if (closing && event.target === event.currentTarget) finishClose();
+  };
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (!open && shouldTriggerShortcut(event, shortcutKey)) {
+      if (!showPanel && shouldTriggerShortcut(event, shortcutKey)) {
         event.preventDefault();
         rememberFocus();
         onOpenChange(true);
         return;
       }
-      if (open && event.key === "Escape") onOpenChange(false);
+      if (open && event.key === "Escape") close();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, shortcutKey, onOpenChange]);
+  }, [open, closing, showPanel, shortcutKey, onOpenChange]);
 
   const rememberFocus = () => {
     restoreRef.current =
@@ -65,7 +87,7 @@ export function BartSpotlight({
         : null;
   };
 
-  if (!open) {
+  if (!showPanel) {
     return (
       <p
         className="bart-spotlight-hint bart-muted"
@@ -82,15 +104,16 @@ export function BartSpotlight({
   return (
     <div className="bart-spotlight-root" data-bart-ui="spotlight">
       <div
-        className="bart-spotlight-backdrop"
+        className={`bart-spotlight-backdrop${closing ? " bart-closing" : ""}`}
         aria-hidden="true"
-        onClick={() => onOpenChange(false)}
+        onClick={close}
       />
       <div
         ref={containerRef}
         role="dialog"
         aria-label={`${title} assistant`}
-        className="bart-spotlight-container"
+        className={`bart-spotlight-container${closing ? " bart-closing" : ""}`}
+        onAnimationEnd={onContainerAnimationEnd}
       >
         <div className="bart-glass bart-spotlight-inputcard">
           <ChatInput
@@ -100,18 +123,30 @@ export function BartSpotlight({
             className="bart-spotlight-input"
           />
           <div className="bart-spotlight-meta">
-            {bart.messages.length > 0 && (
-              <button
-                type="button"
-                className="bart-btn-ghost"
-                onClick={() => setShowHistory((v) => !v)}
-              >
-                {showHistory ? "Latest only" : "Show conversation"}
-              </button>
-            )}
             <span className="bart-muted">
               <kbd className="bart-kbd">Esc</kbd> to close
             </span>
+            {bart.messages.length > 0 && (
+              <div className="bart-spotlight-actions">
+                <button
+                  type="button"
+                  className="bart-btn-ghost"
+                  onClick={() => setShowHistory((v) => !v)}
+                >
+                  {showHistory ? "Latest only" : "Show conversation"}
+                </button>
+                <button
+                  type="button"
+                  className="bart-btn-ghost"
+                  onClick={() => {
+                    bart.reset();
+                    setShowHistory(false);
+                  }}
+                >
+                  <RefreshIcon size={12} /> New chat
+                </button>
+              </div>
+            )}
           </div>
         </div>
         {visible.length > 0 && (

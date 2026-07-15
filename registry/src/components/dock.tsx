@@ -6,13 +6,13 @@ import {
   useState,
   type AnimationEvent,
   type KeyboardEvent as ReactKeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useFocusTrap } from "../core/focus-trap";
 import { motionDisabled } from "../core/motion";
+import { useResizeDrag } from "../core/use-resize-drag";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
 import { ChatPanel } from "./chat-parts";
-import { BartIcon, CloseIcon } from "./icons";
+import { BartIcon, CloseIcon, RefreshIcon } from "./icons";
 
 const DEFAULT_DOCK_SIZE = { width: 384, height: 448 };
 const MIN_DOCK_SIZE = { width: 320, height: 320 };
@@ -46,21 +46,25 @@ export function BartDock({
   const [size, setSize] = useState(DEFAULT_DOCK_SIZE);
   const launcherRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const resizeRef = useRef<{
-    pointerId: number;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const dragStart = useRef(DEFAULT_DOCK_SIZE);
+  const restoreFocusRef = useRef(false);
   const showPanel = open || closing;
   useFocusTrap(panelRef, showPanel);
 
   const finishClose = () => {
     setClosing(false);
     onOpenChange(false);
-    launcherRef.current?.focus();
+    restoreFocusRef.current = true;
   };
+
+  // The tab is unmounted while the panel is open, so it can only take focus once
+  // the closing commit has put it back — calling focus() inside finishClose()
+  // targets a ref that is still null and silently does nothing.
+  useEffect(() => {
+    if (showPanel || !restoreFocusRef.current) return;
+    restoreFocusRef.current = false;
+    launcherRef.current?.focus();
+  }, [showPanel]);
 
   const close = () => {
     if (closing) return;
@@ -94,33 +98,27 @@ export function BartDock({
     });
   };
 
-  const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0 || !panelRef.current) return;
-    const bounds = panelRef.current.getBoundingClientRect();
-    resizeRef.current = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      width: bounds.width,
-      height: bounds.height,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  };
+  const handleProps = useResizeDrag(() => {
+    const bounds = panelRef.current?.getBoundingClientRect();
+    if (bounds) dragStart.current = { width: bounds.width, height: bounds.height };
+  });
 
-  const continueResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    const start = resizeRef.current;
-    if (!start || start.pointerId !== event.pointerId) return;
-    const horizontalDelta =
-      side === "right" ? start.x - event.clientX : event.clientX - start.x;
-    resizeTo(start.width + horizontalDelta, start.height + start.y - event.clientY);
-  };
+  // The dock is anchored to its outside corner, so the panel grows toward the
+  // middle of the page: dragging the inner edge outward is what makes it wider.
+  const widthFrom = (dx: number) =>
+    dragStart.current.width + (side === "right" ? -dx : dx);
+  const heightFrom = (dy: number) => dragStart.current.height - dy;
 
-  const finishResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (resizeRef.current?.pointerId !== event.pointerId) return;
-    resizeRef.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
-  };
+  const cornerCursor = side === "right" ? "nwse" : "nesw";
+  const corner = handleProps(cornerCursor, (dx, dy) =>
+    resizeTo(widthFrom(dx), heightFrom(dy)),
+  );
+  const topEdge = handleProps("ns", (_dx, dy) =>
+    resizeTo(dragStart.current.width, heightFrom(dy)),
+  );
+  const sideEdge = handleProps("ew", (dx) =>
+    resizeTo(widthFrom(dx), dragStart.current.height),
+  );
 
   const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     const step = event.shiftKey ? 32 : 16;
@@ -146,7 +144,7 @@ export function BartDock({
         aria-haspopup="dialog"
         onClick={() => onOpenChange(true)}
       >
-        <BartIcon /> Ask {title}
+        <BartIcon /> {title}
       </button>
     );
   }
@@ -157,33 +155,54 @@ export function BartDock({
       role="dialog"
       aria-label={`${title} assistant`}
       data-bart-ui="dock-panel"
-      className={`bart-dock-panel ${sideClass}${closing ? " bart-closing" : ""}`}
+      className={`bart-glass bart-dock-panel ${sideClass}${closing ? " bart-closing" : ""}`}
       style={{ width: size.width, height: size.height }}
       onAnimationEnd={onPanelAnimationEnd}
     >
       <button
         type="button"
-        className="bart-dock-resize"
+        className="bart-resize-handle bart-dock-resize"
         aria-label="Resize chat panel"
-        title="Drag to resize chat"
-        onPointerDown={startResize}
-        onPointerMove={continueResize}
-        onPointerUp={finishResize}
-        onPointerCancel={finishResize}
         onKeyDown={resizeWithKeyboard}
+        {...corner}
+      />
+      {/* Pointer-only, so they stay out of the tab order: the corner button
+          above already resizes both axes from the keyboard, and two extra tab
+          stops that each do less would only pad the traversal. */}
+      <div
+        aria-hidden="true"
+        className="bart-resize-handle bart-dock-edge bart-dock-edge-top"
+        {...topEdge}
+      />
+      <div
+        aria-hidden="true"
+        className="bart-resize-handle bart-dock-edge bart-dock-edge-side"
+        {...sideEdge}
       />
       <header className="bart-panel-header">
         <span className="bart-panel-title">
           <BartIcon /> {title}
         </span>
-        <button
-          type="button"
-          className="bart-icon-btn"
-          aria-label="Close chat"
-          onClick={close}
-        >
-          <CloseIcon />
-        </button>
+        <div className="bart-panel-actions">
+          <button
+            type="button"
+            className="bart-icon-btn"
+            aria-label="Start new chat"
+            title="Start new chat"
+            onClick={bart.reset}
+          >
+            <RefreshIcon />
+          </button>
+          <button
+            type="button"
+            className="bart-icon-btn"
+            aria-label="Close chat"
+            title="Close chat"
+            onClick={close}
+          >
+            <CloseIcon />
+          </button>
+        </div>
       </header>
       <ChatPanel bart={bart} />
     </div>

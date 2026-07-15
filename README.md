@@ -59,11 +59,32 @@ Things to try:
   code sample — both sides of the conversation render GitHub-flavored
   Markdown with raw HTML disabled.
 - Switch variants in the header: **dock** (bottom tab → chat panel slides up),
-  **sidebar** (edge tab → full-height panel that pushes the page aside on
-  desktop; header has new-chat and close buttons), **spotlight** (press `/`
-  for a glass command-palette-style prompt; Esc closes).
-- In the dock, drag its upper inside corner to resize it upward and inward.
-  The handle also supports arrow keys when focused.
+  **sidebar** (full-height panel that pushes the page aside on desktop),
+  **spotlight** (press `/` for a command-palette-style prompt; Esc or a click
+  outside fades it away).
+- Every variant can start a fresh conversation: the dock and sidebar headers
+  have a new-chat button next to close, and the spotlight keeps its actions in
+  the bottom-right corner of the card.
+- Every variant is glass: a saturated backdrop blur with a diagonal sheen,
+  tunable through the `--bart-glass` and `--bart-glass-sheen` tokens. Note that
+  the page's
+  background must sit on `<body>` or `<html>` — the sidebar pushes `<body>`
+  aside, so a background on an inner wrapper leaves nothing behind the panel for
+  the blur to pick up.
+- The dock and sidebar take a `side` of `"right"` (default) or `"left"`, and
+  mirror themselves accordingly — including which edges they resize from.
+- The sidebar launcher is switchable with `launcher`: `"tab"` (default, a
+  vertical edge tab) or `"button"` (a floating pill in the bottom corner).
+- Resize the dock from any of its two free edges: the inside corner for both
+  axes at once, the top bar for height, the inside bar for width. The sidebar
+  resizes its width from a full-height bar on the edge facing the page, and the
+  page's content reflows with it.
+- Resize handles draw nothing — hover an edge and the cursor turns into a resize
+  arrow, which it keeps for the whole drag. Tab to a handle and it becomes
+  visible; arrow keys resize from there (Shift for bigger steps).
+- Close any variant and keyboard focus goes back where you started: the dock and
+  sidebar return it to their launcher, the spotlight to whatever was focused
+  before it opened.
 - Toggle dark mode; all Bart surfaces re-theme through CSS tokens.
 
 ## Development

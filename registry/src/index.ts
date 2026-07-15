@@ -1,6 +1,6 @@
 export { BartChat, type BartChatProps } from "./components/bart-chat";
 export { BartDock } from "./components/dock";
-export { BartSidebar } from "./components/sidebar";
+export { BartSidebar, type SidebarLauncher } from "./components/sidebar";
 export { BartSpotlight } from "./components/spotlight";
 export { ChatInput, ChatPanel, MessageList } from "./components/chat-parts";
 export { BartSelectionPopover } from "./components/selection-popover";

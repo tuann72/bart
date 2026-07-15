@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
-import { BartChat, dismissHighlight, type BartVariant } from "@bart-ui/registry";
+import {
+  BartChat,
+  dismissHighlight,
+  type BartVariant,
+  type SidebarLauncher,
+} from "@bart-ui/registry";
 import { publicManifest } from "./manifest";
 
 const VARIANTS: BartVariant[] = ["dock", "sidebar", "spotlight"];
+const LAUNCHERS: SidebarLauncher[] = ["tab", "button"];
+const SIDES = ["left", "right"] as const;
 
 const burgers = [
   {
@@ -335,6 +342,8 @@ function PageContent({
 export default function App() {
   const [route, setRoute] = useState("/");
   const [variant, setVariant] = useState<BartVariant>("dock");
+  const [launcher, setLauncher] = useState<SidebarLauncher>("tab");
+  const [side, setSide] = useState<(typeof SIDES)[number]>("right");
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -347,7 +356,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#fffaf3] text-zinc-950 dark:bg-[#18110d] dark:text-zinc-50 font-sans antialiased">
+    <div className="relative min-h-dvh overflow-hidden text-zinc-950 dark:text-zinc-50 font-sans antialiased">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden"
@@ -402,6 +411,54 @@ export default function App() {
             </button>
           ))}
         </div>
+        {variant !== "spotlight" && (
+          <div
+            className="flex items-center gap-1"
+            role="radiogroup"
+            aria-label="Bart side"
+          >
+            {SIDES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="radio"
+                aria-checked={side === item}
+                onClick={() => setSide(item)}
+                className={`rounded-md px-2.5 py-1 capitalize ${
+                  side === item
+                    ? "bg-bart-primary text-bart-primary-foreground"
+                    : "text-zinc-500 hover:text-inherit"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        )}
+        {variant === "sidebar" && (
+          <div
+            className="flex items-center gap-1"
+            role="radiogroup"
+            aria-label="Sidebar launcher"
+          >
+            {LAUNCHERS.map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="radio"
+                aria-checked={launcher === item}
+                onClick={() => setLauncher(item)}
+                className={`rounded-md px-2.5 py-1 capitalize ${
+                  launcher === item
+                    ? "bg-bart-primary text-bart-primary-foreground"
+                    : "text-zinc-500 hover:text-inherit"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        )}
         <button
           type="button"
           onClick={() => setDark((value) => !value)}
@@ -419,6 +476,8 @@ export default function App() {
       <BartChat
         key={variant}
         variant={variant}
+        side={side}
+        launcher={launcher}
         title="Bart"
         api="/api/bart"
         currentRoute={route}

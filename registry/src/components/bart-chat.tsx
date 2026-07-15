@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useBartChat, type UseBartChatOptions } from "../core/use-bart-chat";
 import type { BartVariant } from "../core/types";
 import { BartDock } from "./dock";
-import { BartSidebar } from "./sidebar";
+import { BartSidebar, type SidebarLauncher } from "./sidebar";
 import { BartSelectionPopover } from "./selection-popover";
 import { BartSpotlight } from "./spotlight";
 
@@ -13,6 +13,8 @@ export interface BartChatProps extends UseBartChatOptions {
   title?: string;
   /** Dock/sidebar screen edge. */
   side?: "left" | "right";
+  /** Sidebar launcher: a vertical edge tab, or a floating corner button. */
+  launcher?: SidebarLauncher;
   /** Spotlight open key. */
   shortcutKey?: string;
   /** Show an "Ask Bart" popup when page text is selected. Default on. */
@@ -23,6 +25,7 @@ export function BartChat({
   variant = "dock",
   title = "Bart",
   side = "right",
+  launcher = "tab",
   shortcutKey = "/",
   selectionAsk = true,
   ...chatOptions
@@ -43,6 +46,7 @@ export function BartChat({
         onOpenChange={setOpen}
         title={title}
         side={side}
+        launcher={launcher}
       />
     ) : variant === "spotlight" ? (
       <BartSpotlight

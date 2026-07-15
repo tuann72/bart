@@ -23,6 +23,17 @@
   --bart-accent-foreground: oklch(0.2 0.04 45);
 }
 
+/* The page background lives on <body> so it propagates to the canvas and paints
+   the full viewport. The sidebar pushes <body> aside, so anything painted on an
+   inner wrapper leaves bare white canvas behind the panel — which its glass then
+   picks up and tints, reading as a grey slab in dark mode. */
+body {
+  background: #fffaf3;
+}
+.dark body {
+  background: #18110d;
+}
+
 /* Tailwind v4 preflight uses the browser-default cursor on buttons;
    restore pointer for anything clickable. */
 @layer base {

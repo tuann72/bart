@@ -21,21 +21,35 @@ Implemented and verified:
   ways). Panels slide in/out; the launcher tabs animate back in on close so
   the panel reads as shrinking into the tab; the sidebar pushes page content
   aside through body margin classes with a matching transition; the spotlight
-  fades/scales in, vertically centered; the selection popover fades and lifts
+  fades/scales in and back out, vertically centered, with its backdrop fading
+  alongside the card on either exit path (Escape or a backdrop click); the
+  selection popover fades and lifts
   in, and fades back out when the selection is lost. `prefers-reduced-motion`
   disables all Bart animation (`core/motion.ts` also skips the exit-animation
   state). Anything with an exit animation follows one pattern: `motionDisabled()`
   unmounts immediately, otherwise a `closing` flag flips a `data-state` attribute
   and `onAnimationEnd` does the unmount — never a `setTimeout` duplicating the
-  CSS duration in JS.
+  CSS duration in JS. Closing a panel returns focus to its launcher, which has
+  to wait for the remount commit (see gotchas).
 - Iconography: shared SVG icons in `components/icons.tsx` (circular Bart
   mark, close, send, stop, check, refresh) — no emoji glyphs in Bart UI. The
   send/stop control is a round icon button inside the combined input shell.
 - User and assistant messages render safe GitHub-flavored Markdown through
   `react-markdown` and `remark-gfm`; raw HTML is disabled. Thinking states
   rotate playful filler labels alongside the dots.
-- The dock resizes from its upper inside corner, capped at 32rem wide and
-  `min(52rem, 92dvh)` tall; its mobile layout remains fixed.
+- The dock resizes from three handles on its two free edges — the inside corner
+  (both axes), the top bar (height), and the inside side bar (width) — capped at
+  32rem wide and `min(52rem, 92dvh)` tall. The sidebar resizes its width from a
+  full-height bar on whichever edge faces the page (280–640px). Both mirror for
+  `side="left"`, and both drop their handles on mobile, where the layout is
+  fixed. Every handle is invisible at rest and on hover (`opacity: 0`): the
+  directional cursor is the whole affordance, held page-wide for the duration of
+  a drag (see gotchas). Keyboard focus is the one state that reveals a handle,
+  because an invisible focus target fails WCAG 2.4.7 — so only the handles that
+  are keyboard-operable are focusable at all. The dock's edge bars are
+  pointer-only (`aria-hidden`, not buttons) because its corner already resizes
+  both axes with the arrow keys; adding them to the tab order would be two extra
+  stops that each do strictly less.
 - `apps/playground/` — a fictional Stackhouse Burger Co. site with Home,
   Pricing, and FAQ routes for visual and grounded-context testing, plus a Hono
   API server running a scripted mock model (offline, deterministic, no API
@@ -63,7 +77,8 @@ hoisted to root `node_modules`).
     `highlight.ts` (overlay + aria-live), `shortcut.ts` (spotlight `/` key
     suppression logic, DOM-free for testability), `selection.ts` (quote
     normalization/capping + blockquote building, DOM-free), `focus-trap.ts`,
-    `types.ts`
+    `use-resize-drag.ts` (pointer-capture drag plumbing + the page-wide cursor
+    class, shared by every resize handle), `types.ts`
   - `src/components/` — `bart-chat.tsx` (variant switch; owns the shared
     `open` state and the selection popover), `dock.tsx`, `sidebar.tsx`,
     `spotlight.tsx` (all controlled via `open`/`onOpenChange`),
@@ -104,7 +119,11 @@ From the repo root:
 - Semantic `bart-*` CSS classes live in `registry/src/styles.css`; theming goes
   through the `--bart-primary` / `--bart-accent` (+ `-foreground`) tokens, which
   are also mapped into Tailwind via `@theme inline`. Both light and `.dark`
-  values are required; shipped defaults must hold WCAG AA contrast.
+  values are required; shipped defaults must hold WCAG AA contrast. This applies
+  to status colors too: `--bart-danger` / `--bart-danger-border` back
+  `.bart-error`, and the dark value is near-white rather than a darkened red,
+  because every variant's panel is dark glass in that theme. Literal colors
+  hardcoded in a rule are the bug — they cannot have a second theme.
 
 ## Gotchas
 
@@ -126,6 +145,54 @@ From the repo root:
   corner radius, or shadow geometry, so it does not look like it comes from
   those properties; only removing both clears it. An edge or drop shadow has to
   live on a wrapper element instead, so no element has both them and the filter.
+  Every variant uses `.bart-glass`, so the dock and sidebar panels deliberately
+  have no border or `box-shadow` either — they are edgeless by design, separated
+  from the page by the blur and tint alone. A `::after` rim light was tried (a
+  pseudo-element is a separate box, so it can carry an edge without re-arming
+  the band) and reverted: it read as an unwanted 1px border. Don't reintroduce
+  an edge here without asking.
+- **A consuming page must paint its background on `<body>` or `<html>`, not on
+  an inner wrapper.** The sidebar pushes `<body>` aside with a margin, so a
+  background on a wrapper inside `<body>` gets pushed out from behind the panel
+  and leaves bare white canvas there. The panel's glass then tints that white
+  and reads as a grey slab — glaringly wrong in dark mode. A background on
+  `<body>` propagates to the canvas and paints the full viewport, including
+  behind the panel. This is why `apps/playground/src/index.css` sets `body`
+  background rather than using a Tailwind class on the wrapper `<div>`.
+- **Restoring focus to a launcher can't happen inside the close handler.** The
+  launcher is unmounted while the panel is open, so a `launcherRef.current
+  ?.focus()` called synchronously while closing targets a ref that is still
+  null; it silently does nothing and focus falls to `<body>`. The close handler
+  sets a `restoreFocusRef` flag instead, and an effect keyed on the panel's
+  visibility does the `focus()` after the commit that puts the launcher back.
+  The dock and sidebar both work this way. The spotlight has no launcher, so it
+  restores to whatever held focus before it opened (`restoreRef`), but for the
+  same reason it also restores from an effect rather than from the close
+  handler. Keep any new variant on one of these two shapes.
+- **`[data-bart-ui] button:not(:disabled)` (specificity 0,2,1) outranks a
+  single class.** Any button needing its own `cursor` must be exempted there or
+  the blanket `pointer` silently wins and the affordance never appears. The
+  exemption is `:not(.bart-resize-handle)`, so every resize handle carries
+  `.bart-resize-handle` — add it to any new one. This is easy to miss because
+  side-scoped rules like `.bart-dock-panel.bart-dock-left .bart-dock-resize`
+  score (0,3,0) and win on their own, so the bug can show on one side only.
+- **Pointer capture retargets events, not the cursor.** The cursor always
+  resolves from the element under the pointer, so a drag that leaves its handle
+  reverts to whatever it passes over. The dock therefore adds
+  `body.bart-resizing-nwse` / `-nesw` for the duration of a drag, which forces
+  the cursor page-wide (`body.bart-resizing-* *` with `!important` — the
+  descendant selector and `!important` together are what it takes to outrank
+  every element's own cursor) and suppresses text selection. It is removed on
+  pointer-up, on pointer-cancel, and by an effect cleanup if the panel unmounts
+  mid-drag — all three paths are needed or the page is left stuck with a resize
+  cursor. `use-resize-drag.ts` owns this lifecycle so it is written once.
+- **The sidebar's width and the page's push margin must move together.** Both
+  read `--bart-sidebar-width`, so a resize sets that one variable on `<html>`
+  instead of sizing the panel directly — otherwise the panel and the margin
+  holding the page open drift apart mid-drag. `body.bart-sidebar-push` also
+  eases margin over 0.45s for the open/close slide, which would leave the page
+  trailing the pointer, so `body.bart-sidebar-push.bart-resizing-ew` turns that
+  transition off for the duration of a drag only.
 - The playground `<BartChat key={variant}>` remounts on variant switch, so the
   conversation resets — intentional for the playground.
 
