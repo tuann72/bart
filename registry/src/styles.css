@@ -1,0 +1,660 @@
+/*
+ * Bart theming tokens. Consumers own this file: swap the primary/accent
+ * values to match the site's brand. When a shadcn theme exists, point these
+ * at var(--primary) / var(--accent) instead.
+ */
+:root {
+  --bart-primary: oklch(0.55 0.2 262);
+  --bart-primary-foreground: oklch(0.985 0.005 262);
+  --bart-accent: oklch(0.72 0.14 190);
+  --bart-accent-foreground: oklch(0.2 0.03 190);
+  --bart-surface: oklch(1 0 0);
+  --bart-surface-foreground: oklch(0.21 0.01 262);
+  --bart-muted-foreground: oklch(0.55 0.01 262);
+  --bart-border: oklch(0.91 0.005 262);
+  --bart-glass: oklch(1 0 0 / 0.4);
+  --bart-glass-sheen: oklch(1 0 0 / 0.35);
+  --bart-glass-edge: oklch(1 0 0 / 0.55);
+  --bart-glass-highlight: oklch(1 0 0 / 0.6);
+  --bart-radius: 0.75rem;
+}
+
+.dark {
+  --bart-primary: oklch(0.68 0.17 262);
+  --bart-primary-foreground: oklch(0.16 0.02 262);
+  --bart-accent: oklch(0.78 0.12 190);
+  --bart-accent-foreground: oklch(0.18 0.03 190);
+  --bart-surface: oklch(0.21 0.01 262);
+  --bart-surface-foreground: oklch(0.93 0.005 262);
+  --bart-muted-foreground: oklch(0.68 0.01 262);
+  --bart-border: oklch(0.32 0.01 262);
+  --bart-glass: oklch(0.22 0.015 262 / 0.5);
+  --bart-glass-sheen: oklch(1 0 0 / 0.08);
+  --bart-glass-edge: oklch(1 0 0 / 0.16);
+  --bart-glass-highlight: oklch(1 0 0 / 0.18);
+}
+
+@theme inline {
+  --color-bart-primary: var(--bart-primary);
+  --color-bart-primary-foreground: var(--bart-primary-foreground);
+  --color-bart-accent: var(--bart-accent);
+  --color-bart-accent-foreground: var(--bart-accent-foreground);
+  --color-bart-surface: var(--bart-surface);
+  --color-bart-surface-foreground: var(--bart-surface-foreground);
+  --color-bart-border: var(--bart-border);
+}
+
+/* ---------- shared primitives ---------- */
+
+.bart-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bart-muted {
+  color: var(--bart-muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.bart-kbd {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--bart-border);
+  border-bottom-width: 2px;
+  border-radius: 0.375rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  background: var(--bart-surface);
+  color: var(--bart-surface-foreground);
+}
+
+.bart-btn-primary {
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  border: none;
+  border-radius: calc(var(--bart-radius) - 0.25rem);
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.bart-btn-primary:hover { filter: brightness(1.08); }
+.bart-btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.bart-btn-ghost {
+  background: transparent;
+  color: var(--bart-surface-foreground);
+  border: 1px solid var(--bart-border);
+  border-radius: calc(var(--bart-radius) - 0.25rem);
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.bart-btn-ghost:hover { border-color: var(--bart-accent); color: inherit; }
+
+.bart-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--bart-primary-foreground);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+.bart-icon-btn:hover { background: oklch(1 0 0 / 0.15); }
+
+/* Every interactive Bart element gets a pointer cursor, regardless of the
+   host app's CSS reset. */
+[data-bart-ui] button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* ---------- selection popover ---------- */
+
+.bart-selection-popover {
+  position: fixed;
+  z-index: 70;
+  transform: translate(-50%, calc(-100% - 0.5rem));
+}
+
+.bart-selection-popover .bart-btn-primary {
+  box-shadow: 0 6px 24px oklch(0 0 0 / 0.25);
+  white-space: nowrap;
+}
+
+/* ---------- selected-text pills ---------- */
+
+.bart-input-area {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.bart-quote-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  max-height: 6.5rem;
+  overflow-y: auto;
+  margin: 0.5rem 0.75rem 0;
+}
+
+.bart-quote-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.25rem 0.25rem 0.25rem 0.625rem;
+  border: 1px solid color-mix(in oklch, var(--bart-accent) 45%, var(--bart-border));
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--bart-accent) 10%, var(--bart-surface));
+  font-size: 0.8125rem;
+  color: var(--bart-muted-foreground);
+}
+
+.bart-quote-chip-text {
+  min-width: 0;
+  max-width: 17rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-style: italic;
+}
+
+.bart-quote-chip-dismiss {
+  color: var(--bart-muted-foreground);
+  flex-shrink: 0;
+}
+.bart-quote-chip-dismiss:hover {
+  background: color-mix(in oklch, var(--bart-accent) 20%, transparent);
+}
+
+/* ---------- panel chrome ---------- */
+
+.bart-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.875rem;
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  border-radius: var(--bart-radius) var(--bart-radius) 0 0;
+  flex-shrink: 0;
+}
+
+.bart-panel-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.bart-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+.bart-panel-actions .bart-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bart-panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.bart-message-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--bart-surface-foreground);
+}
+
+.bart-empty-hint { margin: auto; text-align: center; max-width: 16rem; }
+
+.bart-msg-user {
+  align-self: flex-end;
+  max-width: 85%;
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  border-radius: var(--bart-radius);
+  border-bottom-right-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.bart-msg-assistant {
+  align-self: flex-start;
+  max-width: 95%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.bart-msg-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+
+.bart-tool-row {
+  font-size: 0.8125rem;
+  color: var(--bart-muted-foreground);
+  display: flex;
+  gap: 0.375rem;
+  align-items: baseline;
+}
+
+.bart-tool-card {
+  border: 1px solid var(--bart-accent);
+  border-radius: var(--bart-radius);
+  padding: 0.625rem 0.75rem;
+  background: color-mix(in oklch, var(--bart-accent) 12%, var(--bart-surface));
+}
+
+.bart-tool-question { margin: 0 0 0.5rem; font-size: 0.8125rem; }
+.bart-tool-actions { display: flex; gap: 0.5rem; }
+
+.bart-typing { display: flex; gap: 0.25rem; padding: 0.25rem 0; }
+.bart-typing span {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--bart-muted-foreground);
+  animation: bart-pulse 1.2s ease-in-out infinite;
+}
+.bart-typing span:nth-child(2) { animation-delay: 0.15s; }
+.bart-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+.bart-error {
+  border: 1px solid oklch(0.6 0.2 25);
+  color: oklch(0.5 0.2 25);
+  border-radius: var(--bart-radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.bart-error p { margin: 0; }
+
+.bart-input-row {
+  display: flex;
+  padding: 0.75rem;
+  border-top: 1px solid var(--bart-border);
+  flex-shrink: 0;
+}
+
+/* Combined field: the input and the round send/stop button share one shell. */
+.bart-input-shell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--bart-border);
+  border-radius: 999px;
+  background: var(--bart-surface);
+  padding: 0.2rem 0.25rem 0.2rem 0.375rem;
+}
+.bart-input-shell:focus-within {
+  outline: 2px solid var(--bart-primary);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.bart-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.875rem;
+  color: var(--bart-surface-foreground);
+}
+.bart-input:focus {
+  outline: none;
+}
+
+.bart-send-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.bart-send-btn:hover { filter: brightness(1.08); }
+.bart-send-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------- dock variant ---------- */
+
+.bart-dock-tab {
+  position: fixed;
+  bottom: 0;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--bart-border);
+  border-bottom: none;
+  border-radius: var(--bart-radius) var(--bart-radius) 0 0;
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  padding: 0.5rem 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 -4px 16px oklch(0 0 0 / 0.12);
+  /* Appears as the panel finishes closing: rise from the bottom edge so the
+     header reads as shrinking back into the tab. */
+  animation: bart-dock-tab-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bart-dock-right { right: 1.5rem; }
+.bart-dock-left { left: 1.5rem; }
+
+.bart-dock-panel {
+  position: fixed;
+  bottom: 0;
+  z-index: 40;
+  width: 24rem;
+  height: 28rem;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bart-surface);
+  border: 1px solid var(--bart-border);
+  border-bottom: none;
+  border-radius: var(--bart-radius) var(--bart-radius) 0 0;
+  box-shadow: 0 -8px 40px oklch(0 0 0 / 0.18);
+  animation: bart-dock-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bart-dock-panel.bart-closing {
+  animation: bart-dock-out 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 640px) {
+  .bart-dock-panel {
+    left: 0 !important;
+    right: 0 !important;
+    width: auto;
+    height: 75dvh;
+    border-radius: var(--bart-radius) var(--bart-radius) 0 0;
+  }
+}
+
+/* ---------- sidebar variant ---------- */
+
+/*
+ * While the sidebar is open, the page is pushed aside via a body margin so
+ * content stays fully visible. On small screens the panel is full-width, so
+ * no room is made. Consumers can change the width via --bart-sidebar-width.
+ */
+:root { --bart-sidebar-width: 24rem; }
+
+body.bart-sidebar-push {
+  transition:
+    margin-left 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    margin-right 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+body.bart-sidebar-push-right { margin-right: var(--bart-sidebar-width); }
+body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
+
+@media (max-width: 640px) {
+  body.bart-sidebar-push-right { margin-right: 0; }
+  body.bart-sidebar-push-left { margin-left: 0; }
+}
+
+.bart-sidebar-tab {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--bart-primary);
+  color: var(--bart-primary-foreground);
+  border: 1px solid var(--bart-border);
+  padding: 0.75rem 0.375rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  /* Appears as the panel finishes closing: slide in from the screen edge. */
+  animation: bart-side-tab-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bart-sidebar-tab.bart-side-right { right: 0; border-right: none; border-radius: var(--bart-radius) 0 0 var(--bart-radius); }
+.bart-sidebar-tab.bart-side-left { left: 0; border-left: none; border-radius: 0 var(--bart-radius) var(--bart-radius) 0; --bart-tab-from: -110%; }
+.bart-sidebar-tab-label { writing-mode: vertical-rl; letter-spacing: 0.05em; }
+.bart-sidebar-tab.bart-side-left .bart-sidebar-tab-label { transform: rotate(180deg); }
+
+.bart-sidebar-panel {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  width: var(--bart-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--bart-surface);
+  box-shadow: 0 0 48px oklch(0 0 0 / 0.2);
+  animation: bart-slide-in 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bart-sidebar-panel.bart-side-right { right: 0; border-left: 1px solid var(--bart-border); }
+.bart-sidebar-panel.bart-side-left { left: 0; border-right: 1px solid var(--bart-border); }
+.bart-sidebar-panel .bart-panel-header { border-radius: 0; }
+
+@media (max-width: 640px) {
+  .bart-sidebar-panel { width: 100%; }
+}
+
+/* ---------- spotlight variant ---------- */
+
+.bart-spotlight-hint {
+  position: fixed;
+  bottom: 1rem;
+  right: 1.5rem;
+  z-index: 40;
+  margin: 0;
+}
+
+/* Vertically and horizontally centered over a dimmed, blurred backdrop. */
+.bart-spotlight-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bart-spotlight-backdrop {
+  position: absolute;
+  inset: 0;
+  /* Dim lightly so page colors stay visible through the glass above. */
+  background: oklch(0 0 0 / 0.22);
+  backdrop-filter: blur(3px);
+  animation: bart-fade-in 0.25s ease-out;
+}
+
+.bart-spotlight-container {
+  position: relative;
+  margin: 0 auto;
+  width: min(38rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: bart-spotlight-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/*
+ * Glassmorphism: a translucent tint over a strong saturated blur, a diagonal
+ * sheen so light appears to play across the surface, and bright top/edge
+ * highlights that read as a pane of glass. All tunable via --bart-glass-*.
+ */
+.bart-glass {
+  background:
+    linear-gradient(160deg, var(--bart-glass-sheen), transparent 55%),
+    var(--bart-glass);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid var(--bart-glass-edge);
+  border-radius: calc(var(--bart-radius) + 0.25rem);
+  box-shadow:
+    0 24px 80px oklch(0 0 0 / 0.3),
+    inset 0 1px 0 var(--bart-glass-highlight),
+    inset 0 0 32px oklch(1 0 0 / 0.05);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .bart-glass { background: var(--bart-surface); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bart-glass { background: var(--bart-surface); backdrop-filter: none; }
+  .bart-spotlight-backdrop { backdrop-filter: none; }
+}
+
+.bart-spotlight-inputcard { padding: 0.5rem 0.75rem; }
+.bart-spotlight-input .bart-input-row { border-top: none; padding: 0.25rem 0; }
+.bart-spotlight-input .bart-quote-list { margin: 0.375rem 0 0; }
+.bart-spotlight-input .bart-quote-chip-text { max-width: 26rem; }
+/* The glass card is the field: the inner shell drops its own border. */
+.bart-spotlight-input .bart-input-shell {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+.bart-spotlight-input .bart-input-shell:focus-within {
+  outline: none;
+}
+.bart-spotlight-input .bart-input {
+  font-size: 1.0625rem;
+  padding: 0.5rem 0.25rem;
+}
+.bart-spotlight-input .bart-send-btn {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.bart-spotlight-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.25rem 0.375rem;
+}
+
+.bart-spotlight-results {
+  max-height: 46vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* On small screens (touch keyboards) anchor near the top instead of center. */
+@media (max-width: 640px) {
+  .bart-spotlight-root { justify-content: flex-start; padding-top: 8vh; }
+}
+
+/* ---------- highlight overlay ---------- */
+
+.bart-highlight-overlay {
+  position: absolute;
+  z-index: 60;
+  pointer-events: none;
+  border: 2px solid var(--bart-accent);
+  border-radius: var(--bart-radius);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--bart-accent) 35%, transparent);
+  animation: bart-highlight-pulse 1.4s ease-in-out infinite;
+}
+
+/* ---------- motion ---------- */
+
+@keyframes bart-pulse {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+@keyframes bart-slide-in {
+  from { transform: translateX(var(--bart-slide-from, 100%)); }
+  to { transform: translateX(0); }
+}
+@keyframes bart-slide-out {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--bart-slide-from, 100%)); }
+}
+.bart-sidebar-panel.bart-side-left { --bart-slide-from: -100%; }
+.bart-sidebar-panel.bart-closing {
+  animation: bart-slide-out 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes bart-dock-in {
+  from { transform: translateY(105%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes bart-dock-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(105%); opacity: 0.5; }
+}
+
+@keyframes bart-dock-tab-in {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* The sidebar tab's resting transform centers it vertically; the entrance
+   keyframes must carry that translateY. */
+@keyframes bart-side-tab-in {
+  from { transform: translateY(-50%) translateX(var(--bart-tab-from, 110%)); }
+  to { transform: translateY(-50%) translateX(0); }
+}
+
+@keyframes bart-spotlight-in {
+  from { opacity: 0; transform: scale(0.97) translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bart-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bart-highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in oklch, var(--bart-accent) 35%, transparent); }
+  50% { box-shadow: 0 0 0 10px color-mix(in oklch, var(--bart-accent) 18%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bart-typing span,
+  .bart-highlight-overlay,
+  .bart-sidebar-panel,
+  .bart-dock-panel,
+  .bart-dock-tab,
+  .bart-sidebar-tab,
+  .bart-spotlight-container,
+  .bart-spotlight-backdrop {
+    animation: none;
+  }
+  body.bart-sidebar-push {
+    transition: none;
+  }
+}

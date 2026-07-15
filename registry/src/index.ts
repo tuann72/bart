@@ -1,0 +1,40 @@
+export { BartChat, type BartChatProps } from "./components/bart-chat";
+export { BartDock } from "./components/dock";
+export { BartSidebar } from "./components/sidebar";
+export { BartSpotlight } from "./components/spotlight";
+export { ChatInput, ChatPanel, MessageList } from "./components/chat-parts";
+export { BartSelectionPopover } from "./components/selection-popover";
+export {
+  appendSelection,
+  buildQuotedMessage,
+  normalizeSelection,
+  MAX_SELECTION_CHARS,
+  MAX_SELECTION_ITEMS,
+} from "./core/selection";
+export {
+  useBartChat,
+  type BartToolName,
+  type UseBartChatOptions,
+  type UseBartChatReturn,
+} from "./core/use-bart-chat";
+export { dismissHighlight, runHighlight } from "./core/highlight";
+export { shouldTriggerShortcut, type ShortcutEventLike } from "./core/shortcut";
+export {
+  DEFAULT_TOOL_POLICIES,
+  resolveToolPolicies,
+  validateRoute,
+  validateTarget,
+} from "./core/tool-policy";
+export type {
+  BartPublicManifest,
+  BartRoute,
+  BartTarget,
+  BartToolOutput,
+  BartToolPolicies,
+  BartTools,
+  BartUIMessage,
+  BartVariant,
+  HighlightInput,
+  NavigateInput,
+  ToolPolicy,
+} from "./core/types";

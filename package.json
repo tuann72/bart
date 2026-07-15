@@ -1,0 +1,22 @@
+{
+  "name": "bart",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "registry",
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc -p registry && tsc -b apps/playground",
+    "playground": "bun run --cwd apps/playground dev",
+    "playground:server": "bun run --cwd apps/playground server"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

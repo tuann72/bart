@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "@bart-ui/registry/styles.css";
+
+/* Bart source lives in a symlinked workspace package, outside Tailwind's
+   automatic content detection. */
+@source "../../../registry/src";
+
+/* Class-based dark mode: the playground toggles .dark on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tailwind v4 preflight uses the browser-default cursor on buttons;
+   restore pointer for anything clickable. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
