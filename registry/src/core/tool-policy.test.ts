@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_TOOL_POLICIES,
   resolveToolPolicies,
+  validateInteraction,
   validateRoute,
   validateTarget,
 } from "./tool-policy";
@@ -14,17 +15,21 @@ const manifest: BartPublicManifest = {
       route: "/pricing",
       title: "Pricing",
       description: "",
-      targets: [{ id: "pricing-comparison", description: "" }],
+      targets: [
+        { id: "pricing-comparison", description: "" },
+        { id: "start-order", description: "", interactive: true },
+      ],
     },
   ],
 };
 
 describe("resolveToolPolicies", () => {
-  test("defaults: navigate confirm, highlight auto", () => {
+  test("defaults: navigate confirm, highlight auto, interact confirm", () => {
     expect(resolveToolPolicies()).toEqual(DEFAULT_TOOL_POLICIES);
     expect(DEFAULT_TOOL_POLICIES).toEqual({
       navigate: "confirm",
       highlight: "auto",
+      interact: "confirm",
     });
   });
 
@@ -32,6 +37,7 @@ describe("resolveToolPolicies", () => {
     expect(resolveToolPolicies({ navigate: "auto" })).toEqual({
       navigate: "auto",
       highlight: "auto",
+      interact: "confirm",
     });
   });
 });
@@ -88,6 +94,38 @@ describe("validateTarget", () => {
 
   test("rejects non-string targets", () => {
     expect(validateTarget(manifest, "/", { id: "hero" }).reason).toBe(
+      "invalid-target",
+    );
+  });
+});
+
+describe("validateInteraction", () => {
+  test("accepts a target flagged interactive on the current route", () => {
+    expect(validateInteraction(manifest, "/pricing", "start-order")).toEqual({
+      ok: true,
+    });
+  });
+
+  test("rejects a registered target that is not flagged interactive", () => {
+    expect(
+      validateInteraction(manifest, "/pricing", "pricing-comparison").reason,
+    ).toBe("target-not-interactive");
+  });
+
+  test("rejects an interactive target from a different route", () => {
+    expect(validateInteraction(manifest, "/", "start-order").reason).toBe(
+      "unknown-target",
+    );
+  });
+
+  test("rejects unknown current routes", () => {
+    expect(validateInteraction(manifest, "/nope", "start-order").reason).toBe(
+      "unknown-route",
+    );
+  });
+
+  test("rejects non-string targets", () => {
+    expect(validateInteraction(manifest, "/pricing", 42).reason).toBe(
       "invalid-target",
     );
   });

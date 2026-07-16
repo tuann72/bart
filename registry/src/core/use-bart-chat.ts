@@ -7,12 +7,18 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
 import { runHighlight } from "./highlight";
+import { runInteract } from "./interact";
 import {
   appendSelection,
   buildQuotedMessage,
   MAX_SELECTION_ITEMS,
 } from "./selection";
-import { resolveToolPolicies, validateRoute, validateTarget } from "./tool-policy";
+import {
+  resolveToolPolicies,
+  validateInteraction,
+  validateRoute,
+  validateTarget,
+} from "./tool-policy";
 import type {
   BartPublicManifest,
   BartToolOutput,
@@ -20,11 +26,11 @@ import type {
   BartUIMessage,
 } from "./types";
 
-export type BartToolName = "navigate" | "highlight";
+export type BartToolName = "navigate" | "highlight" | "interact";
 
 /** Runtime guard for model-supplied tool names — never trust the wire. */
 export function isBartToolName(name: unknown): name is BartToolName {
-  return name === "navigate" || name === "highlight";
+  return name === "navigate" || name === "highlight" || name === "interact";
 }
 
 function stringField(input: unknown, key: string): string | undefined {
@@ -45,6 +51,8 @@ export interface UseBartChatOptions {
   toolPolicy?: Partial<BartToolPolicies>;
   /** Hard cap on navigations per assistant turn to prevent loops. */
   maxNavigationsPerTurn?: number;
+  /** Hard cap on element clicks per assistant turn to prevent loops. */
+  maxInteractionsPerTurn?: number;
   /** Maximum selected-text pills attached to the next message. Default 8. */
   maxPendingSelections?: number;
 }
@@ -99,11 +107,21 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
         configuredPolicies.highlight === "confirm"
           ? "auto"
           : configuredPolicies.highlight,
+      interact:
+        configuredPolicies.interact === "confirm"
+          ? "auto"
+          : configuredPolicies.interact,
     };
-  }, [autoApprove, configuredPolicies.navigate, configuredPolicies.highlight]);
+  }, [
+    autoApprove,
+    configuredPolicies.navigate,
+    configuredPolicies.highlight,
+    configuredPolicies.interact,
+  ]);
   // Security caps, not preferences: consumer configuration can lower these
   // but never raise them past the documented ceilings.
   const maxNavigations = clampLimit(options.maxNavigationsPerTurn ?? 2, 0, 10);
+  const maxInteractions = clampLimit(options.maxInteractionsPerTurn ?? 3, 0, 10);
   const maxPendingSelections = clampLimit(
     options.maxPendingSelections ?? MAX_SELECTION_ITEMS,
     1,
@@ -117,6 +135,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const policiesRef = useRef(policies);
   policiesRef.current = policies;
   const navigationsThisTurn = useRef(0);
+  const interactionsThisTurn = useRef(0);
   const helpersRef = useRef<UseChatHelpers<BartUIMessage> | null>(null);
 
   const executeTool = useCallback(
@@ -135,11 +154,20 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
       }
       const target = stringField(input, "target");
       if (target === undefined) return { ok: false, reason: "invalid-target" };
+      if (toolName === "interact") {
+        const check = validateInteraction(manifest, routeRef.current, target);
+        if (!check.ok) return check;
+        if (interactionsThisTurn.current >= maxInteractions) {
+          return { ok: false, reason: "interaction-limit-reached" };
+        }
+        interactionsThisTurn.current += 1;
+        return runInteract(target);
+      }
       const check = validateTarget(manifest, routeRef.current, target);
       if (!check.ok) return check;
       return runHighlight(target);
     },
-    [manifest, maxNavigations],
+    [manifest, maxNavigations, maxInteractions],
   );
 
   const transport = useMemo(
@@ -195,6 +223,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
       const trimmed = text.trim();
       if (trimmed.length === 0) return;
       navigationsThisTurn.current = 0;
+      interactionsThisTurn.current = 0;
       const quotes = quotesRef.current;
       const message =
         quotes.length > 0 ? buildQuotedMessage(quotes, trimmed) : trimmed;
@@ -216,6 +245,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
     chat.clearError();
     setPendingQuotes([]);
     navigationsThisTurn.current = 0;
+    interactionsThisTurn.current = 0;
   }, [chat.stop, chat.setMessages, chat.clearError]);
 
   const respondToToolCall = useCallback<UseBartChatReturn["respondToToolCall"]>(

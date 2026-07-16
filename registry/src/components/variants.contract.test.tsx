@@ -20,7 +20,14 @@ import { BartSpotlight } from "./spotlight";
 
 const manifest: BartPublicManifest = {
   routes: [
-    { route: "/", title: "Home", description: "Home page", targets: [] },
+    {
+      route: "/",
+      title: "Home",
+      description: "Home page",
+      targets: [
+        { id: "order-button", description: "Order button", interactive: true },
+      ],
+    },
     { route: "/faq", title: "FAQ", description: "Questions", targets: [] },
   ],
 };
@@ -93,6 +100,7 @@ const toolCallReply = (toolName: string, input: object) => () =>
 function Host({
   variant,
   onNavigate = () => {},
+  onPageButtonClick = () => {},
   appearance,
   icon,
   header,
@@ -100,6 +108,8 @@ function Host({
 }: {
   variant: BartVariant;
   onNavigate?: (route: string) => void;
+  /** Click handler for the page's own interactive target element. */
+  onPageButtonClick?: () => void;
   appearance?: BartAppearance;
   icon?: ReactNode;
   header?: ReactNode;
@@ -119,6 +129,13 @@ function Host({
       </button>
       <button type="button" onClick={() => setOpen(false)}>
         external-close
+      </button>
+      <button
+        type="button"
+        data-bart-target="order-button"
+        onClick={onPageButtonClick}
+      >
+        page-order-button
       </button>
       {variant === "dock" && (
         <BartDock
@@ -338,6 +355,28 @@ for (const driver of drivers) {
       await screen.findByText("Here you go.");
     });
 
+    test("approving an interact call clicks the page element", async () => {
+      let pageClicks = 0;
+      fetchQueue.push(toolCallReply("interact", { target: "order-button" }));
+      fetchQueue.push(textReply("Your order is started."));
+      render(
+        <Host
+          variant={driver.variant}
+          onPageButtonClick={() => {
+            pageClicks += 1;
+          }}
+        />,
+      );
+      await openPanel(driver);
+      await sendMessage("start my order");
+      await screen.findByText("Bart wants to click “order-button”");
+      expect(pageClicks).toBe(0);
+      fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+      await screen.findByText("You approved clicking “order-button”");
+      expect(pageClicks).toBe(1);
+      await screen.findByText("Your order is started.");
+    });
+
     test("the auto-approve toggle executes navigation without an approval card", async () => {
       const seen: string[] = [];
       fetchQueue.push(toolCallReply("navigate", { route: "/faq" }));
@@ -345,7 +384,7 @@ for (const driver of drivers) {
       render(<Host variant={driver.variant} onNavigate={(r) => seen.push(r)} />);
       await openPanel(driver);
       const toggle = screen.getByRole("switch", {
-        name: "Automatically approve navigation and highlights",
+        name: "Automatically approve Bart's page actions",
       });
       expect(toggle.getAttribute("aria-checked")).toBe("false");
       fireEvent.click(toggle);

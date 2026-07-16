@@ -7,6 +7,8 @@ import type {
 export const DEFAULT_TOOL_POLICIES: BartToolPolicies = {
   navigate: "confirm",
   highlight: "auto",
+  // Clicking mutates page state, so it defaults to confirm like navigation.
+  interact: "confirm",
 };
 
 export function resolveToolPolicies(
@@ -53,6 +55,26 @@ export function validateTarget(
   }
   if (!page.targets.some((t) => t.id === target)) {
     return { ok: false, reason: "unknown-target" };
+  }
+  return { ok: true };
+}
+
+/**
+ * Interaction requires a second opt-in on top of target registration: the
+ * manifest entry must be flagged `interactive`. A target registered for
+ * highlighting is never clickable by default.
+ */
+export function validateInteraction(
+  manifest: BartPublicManifest,
+  currentRoute: string,
+  target: unknown,
+): BartToolOutput {
+  const registered = validateTarget(manifest, currentRoute, target);
+  if (!registered.ok) return registered;
+  const page = manifest.routes.find((r) => r.route === currentRoute);
+  const entry = page?.targets.find((t) => t.id === target);
+  if (!entry?.interactive) {
+    return { ok: false, reason: "target-not-interactive" };
   }
   return { ok: true };
 }

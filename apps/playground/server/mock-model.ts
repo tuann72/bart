@@ -39,7 +39,7 @@ function textParts(text: string): LanguageModelV2StreamPart[] {
 }
 
 function toolCallParts(
-  toolName: "navigate" | "highlight",
+  toolName: "navigate" | "highlight" | "interact",
   input: object,
 ): LanguageModelV2StreamPart[] {
   const id = `call-${toolName}`;
@@ -124,19 +124,27 @@ function respond(prompt: LanguageModelV2Prompt): {
       result && result.output.type === "json"
         ? (result.output.value as { ok?: boolean; reason?: string })
         : undefined;
+    const verb =
+      result?.toolName === "navigate"
+        ? "navigate"
+        : result?.toolName === "interact"
+          ? "click that"
+          : "highlight";
     if (value?.ok) {
       return {
         parts: textParts(
           result?.toolName === "navigate"
             ? "Done — you're on the page now. Anything else you want to find?"
-            : "There it is — I've highlighted it on the page for you.",
+            : result?.toolName === "interact"
+              ? "Done — your pickup order is started. It'll be ready in 15–20 minutes."
+              : "There it is — I've highlighted it on the page for you.",
         ),
         finishReason: "stop",
       };
     }
     return {
       parts: textParts(
-        `No problem — I didn't ${result?.toolName === "navigate" ? "navigate" : "highlight"} (${value?.reason ?? "not completed"}). Anything else?`,
+        `No problem — I didn't ${verb} (${value?.reason ?? "not completed"}). Anything else?`,
       ),
       finishReason: "stop",
     };
@@ -166,6 +174,13 @@ function respond(prompt: LanguageModelV2Prompt): {
   }
 
   const text = raw.toLowerCase();
+
+  if (/start (a |my |the )?(pickup )?order|place (a |an |my )?order|order pickup/.test(text)) {
+    return {
+      parts: toolCallParts("interact", { target: "start-order" }),
+      finishReason: "tool-calls",
+    };
+  }
 
   if (text.includes("highlight") || text.includes("show me the")) {
     return {
@@ -263,7 +278,8 @@ Add fries and a fountain drink for **$5**. Say “highlight the burger menu” o
 Try asking:
 - “How much is the Smoke Show?”
 - “Highlight the combo deals”
-- “Take me to the FAQ”`,
+- “Take me to the FAQ”
+- “Start a pickup order” (on the pricing page)`,
     ),
     finishReason: "stop",
   };

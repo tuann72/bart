@@ -66,6 +66,11 @@ Pickup orders are usually ready in 15–20 minutes.`,
           id: "combo-deals",
           description: "Combo upgrade, sides, shakes, and kids pricing.",
         },
+        {
+          id: "start-order",
+          description: "Button that starts a pickup order.",
+          interactive: true,
+        },
       ],
       body: `# Menu and pricing
 
@@ -84,7 +89,9 @@ Every Stackhouse burger is smashed to order and served on a toasted potato roll.
 - Hand-cut fries: **$4**
 - Onion rings: **$5**
 - Hand-spun shake: **$6**
-- Kids combo: **$8**`,
+- Kids combo: **$8**
+
+Pickup orders can be started right from this page with the **Start pickup order** button. Orders are usually ready in 15–20 minutes.`,
     },
     {
       route: "/faq",

@@ -3,9 +3,10 @@
 Bart is a portable, shadcn-style React LLM assistant. Consumers scaffold it into
 their own repository (`bunx @bart-ui/cli init` / `npx @bart-ui/cli init`) and own
 the source afterwards; there is no runtime npm dependency on Bart. It provides a
-streaming chat UI, markdown-based site knowledge, safe page navigation, and
-element highlighting. LLM requests always pass through consumer-owned server
-code; API keys live only in environment variables.
+streaming chat UI, markdown-based site knowledge, safe page navigation,
+element highlighting, and opt-in element clicking. LLM requests always pass
+through consumer-owned server code; API keys live only in environment
+variables.
 
 ## Current state
 
@@ -13,6 +14,14 @@ Implemented and verified:
 
 - `registry/` — the source templates consumers will receive: headless core,
   three UI variants, theming tokens, and the Fetch-standard server handler.
+- The interact tool: the model can click page elements that are registered
+  with `data-bart-target`, flagged `interactive: true` in the manifest, and
+  are natively button-like (`core/interact.ts` rejects links, text inputs,
+  and disabled controls at runtime). Defaults to `confirm`, capped per turn
+  (`maxInteractionsPerTurn`, default 3, ceiling 10), and flashes the highlight
+  overlay + aria-live announcement so the click is always visible. The
+  playground's example is the pricing page's "Start pickup order" button
+  (`start-order`).
 - "Ask about selection": selecting page text shows an "Ask Bart" popover;
   clicking it opens the active variant with the selection attached as a
   dismissible pill. Up to eight unique selections can be attached in every
@@ -60,17 +69,23 @@ Implemented and verified:
   API server running a scripted mock model (offline, deterministic, no API
   key). No provider adapter is installed anywhere in the repository. This app
   doubles as the future Playwright host.
-- Tests (`bun test`, 99 passing): pure unit tests (shortcut suppression,
-  route/target validation, context selection and search, resize math, server
-  boundary hardening) plus a React Testing Library contract suite that runs
-  identical behavioral assertions against all three variant shells in
-  happy-dom (see Testing strategy).
+- Tests (`bun test`, 131 passing): pure unit tests (shortcut suppression,
+  route/target/interaction validation, context selection and search, resize
+  math, server boundary hardening) plus a React Testing Library contract suite
+  that runs identical behavioral assertions against all three variant shells
+  in happy-dom (see Testing strategy).
+- Playwright browser suite (`bun run test:e2e`, 7 specs): runs against the
+  playground + mock model in Chromium, both servers auto-started by
+  `apps/playground/playwright.config.ts` (and reused if already running).
+  Covers real streaming, variant open/close, the `/` shortcut, highlight
+  overlay, interact approve/deny with its DOM effect, and a layout regression
+  (spotlight hint icon inline under Tailwind preflight).
 
 Planned but NOT yet built: the `@bart-ui/cli` package (`init`, `add <variant>`,
 `sync`, `doctor`, `update`), markdown ingestion via `gray-matter` (manifests are
 currently hand-written in the playground), Next.js/React Router adapters and
-example apps, provider factories (OpenAI/Anthropic/Google),
-durable rate limiting, and the Playwright browser suite.
+example apps, provider factories (OpenAI/Anthropic/Google), and
+durable rate limiting.
 
 ## Workspace layout
 
@@ -117,6 +132,7 @@ From the repo root:
 
 - `bun install` — install everything
 - `bun test` — unit tests
+- `bun run test:e2e` — Playwright suite (starts or reuses both playground servers)
 - `bun run typecheck` — `tsc -p registry && tsc -b apps/playground`
 - `bun run playground:server` — Hono mock API on :8787
 - `bun run playground` — Vite dev server on :5173 (run both for visual testing)
@@ -127,9 +143,9 @@ From the repo root:
   carries a `/* ---------- name ---------- */` marker: grep the marker, then read
   from that offset. Same for `apps/playground/src/App.tsx` (~490).
 - Verification ladder, climbed only as far as the change needs: `bun run
-  typecheck` → `bun test` (~100 tests: pure logic plus happy-dom component
-  contracts) → a scripted Playwright run
-  against the playground (slow; needs both servers up). Screenshots are the most
+  typecheck` → `bun test` (~130 tests: pure logic plus happy-dom component
+  contracts) → `bun run test:e2e` (Playwright against the playground; it
+  starts both servers itself, or reuses running ones). Screenshots are the most
   expensive output in this repo: take one only when the question is genuinely
   visual (contrast, a band artifact, spacing), clip to the element rather than
   the page, and never as a routine "looks right" check.
@@ -281,7 +297,12 @@ From the repo root:
 5. **Highlighting**: only registered target ids resolved via
    `data-bart-target` attributes; arbitrary model-generated CSS selectors are
    never accepted; overlay is non-layout-shifting, announced via aria-live,
-   auto-cleaned.
+   auto-cleaned. **Interaction** adds a second opt-in on top of registration:
+   the manifest target must be flagged `interactive` (highlightable never
+   implies clickable), and at runtime the element must be natively button-like
+   and enabled — links are rejected so a click can never bypass the navigate
+   tool's route allowlisting, and text inputs are rejected because interact
+   clicks, it never types. Clicks are capped per assistant turn.
 6. **Context is data, not instructions**: markdown is delimited in
    `<bart-context>` tags and the base system prompt says embedded instructions
    must be ignored and cannot expand tool permissions. Embedded content is
@@ -302,9 +323,9 @@ From the repo root:
    `LIMIT_CAPS` (server) and the client's navigation/selection caps are hard
    ceilings. Don't log API keys, full prompts, or message bodies.
 8. **Tool policies** are `auto` | `confirm` | `disabled` per tool. Defaults:
-   highlight `auto`, navigate `confirm`. The user-facing auto-approve toggle
-   (in every variant) only upgrades `confirm` to `auto`; it must never
-   re-enable a tool the consumer set to `disabled`.
+   highlight `auto`, navigate `confirm`, interact `confirm`. The user-facing
+   auto-approve toggle (in every variant) only upgrades `confirm` to `auto`;
+   it must never re-enable a tool the consumer set to `disabled`.
 9. **Spotlight shortcut** (`/`, remappable) must never fire inside inputs,
    textareas, selects, contenteditable, during IME composition, or with
    modifiers; Escape closes and restores focus.
@@ -363,10 +384,15 @@ retrieval is deliberately out of V1 scope.
   what let the shell internals be rewritten under it without edits. Variant
   one-offs and `use-shell-lifecycle` edge cases (reopen-mid-exit) have their
   own blocks/files.
-- Full flows → Playwright against the playground with the mock model, covering
-  all three variants and the `/` shortcut edge cases (not yet set up; manual
-  Playwright scripts are used for smoke verification). The deferred stylesheet
-  restructure (see PLAN.md) is blocked on this suite existing.
+- Full flows → the Playwright suite (`apps/playground/e2e/*.e2e.ts` — that
+  suffix, never `.test.ts`/`.spec.ts`, or `bun test` picks the file up and
+  fails on Playwright's runner check; run with
+  `bun run test:e2e`) against the playground with the mock model: real
+  streaming, the `/` shortcut, tool approval/denial with actual DOM effects,
+  and layout regressions that happy-dom cannot see (e.g. consumer CSS resets).
+  New full-flow behavior belongs here only when a real browser is what proves
+  it; shell behavior belongs in the contract suite. This suite existing
+  unblocks the deferred stylesheet restructure.
 - Screenshot-based visual regression only once the design stabilizes.
 - The mock model exercises the same handler/transport/streaming/approval paths
   as real providers; provider-specific behavior belongs in a mocked-provider

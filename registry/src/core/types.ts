@@ -3,6 +3,12 @@ import type { UIDataTypes, UIMessage } from "ai";
 export interface BartTarget {
   id: string;
   description: string;
+  /**
+   * Opt-in for the interact tool: the model may click this element. The
+   * element itself must also be a natively clickable control (button-like);
+   * highlightable never implies clickable.
+   */
+  interactive?: boolean;
 }
 
 export interface BartRoute {
@@ -22,6 +28,7 @@ export type ToolPolicy = "auto" | "confirm" | "disabled";
 export interface BartToolPolicies {
   navigate: ToolPolicy;
   highlight: ToolPolicy;
+  interact: ToolPolicy;
 }
 
 export interface NavigateInput {
@@ -29,6 +36,10 @@ export interface NavigateInput {
 }
 
 export interface HighlightInput {
+  target: string;
+}
+
+export interface InteractInput {
   target: string;
 }
 
@@ -42,6 +53,7 @@ export interface BartToolOutput {
 export interface BartTools {
   navigate: { input: NavigateInput; output: BartToolOutput };
   highlight: { input: HighlightInput; output: BartToolOutput };
+  interact: { input: InteractInput; output: BartToolOutput };
   [k: string]: { input: unknown; output: unknown };
 }
 

@@ -884,12 +884,17 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
 
 /* ---------- spotlight variant ---------- */
 
+/* Flex keeps the icon on the text line: consumer CSS resets (Tailwind
+   preflight) set svg to display: block, which would wrap it otherwise. */
 .bart-spotlight-hint {
   position: fixed;
   bottom: 1rem;
   right: 1.5rem;
   z-index: 40;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 /* Vertically and horizontally centered over a dimmed, blurred backdrop. */

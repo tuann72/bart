@@ -30,6 +30,11 @@ export const publicManifest: BartPublicManifest = {
           id: "combo-deals",
           description: "Combo upgrade, sides, shakes, and kids pricing.",
         },
+        {
+          id: "start-order",
+          description: "Button that starts a pickup order.",
+          interactive: true,
+        },
       ],
     },
     {

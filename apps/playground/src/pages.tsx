@@ -1,6 +1,8 @@
 /** The fictional Stackhouse Burger Co. pages: pure site content, no
  *  playground chrome. Each data-bart-target here is registered in the
  *  manifests. */
+import { useState } from "react";
+
 const burgers = [
   {
     name: "The Stackhouse",
@@ -50,6 +52,10 @@ export function PageContent({
   route: string;
   navigate: (route: string) => void;
 }) {
+  // Backs the pricing page's "Start pickup order" button — the playground's
+  // interact-tool target, so a Bart click has a visible page effect.
+  const [orderStarted, setOrderStarted] = useState(false);
+
   if (route === "/pricing") {
     return (
       <div className="space-y-12">
@@ -141,6 +147,25 @@ export function PageContent({
               <strong className="mt-1 block text-xl">$8</strong>
             </div>
           </div>
+        </section>
+
+        <section className="flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            data-bart-target="start-order"
+            onClick={() => setOrderStarted(true)}
+            className="rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-orange-700"
+          >
+            Start pickup order
+          </button>
+          {orderStarted && (
+            <p
+              role="status"
+              className="text-sm font-semibold text-lime-700 dark:text-lime-400"
+            >
+              Pickup order started — ready in 15–20 minutes.
+            </p>
+          )}
         </section>
       </div>
     );

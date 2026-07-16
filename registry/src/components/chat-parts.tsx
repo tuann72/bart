@@ -98,6 +98,16 @@ function toolPhrases(name: BartToolName, input: unknown) {
     };
   }
   const target = (input as { target?: string } | undefined)?.target ?? "…";
+  if (name === "interact") {
+    return {
+      question: `Bart wants to click “${target}”`,
+      progress: `Clicking “${target}”`,
+      approved: `You approved clicking “${target}”`,
+      done: `Clicked “${target}”`,
+      denied: `You denied clicking “${target}”`,
+      failed: `Couldn't click “${target}”`,
+    };
+  }
   return {
     question: `Bart wants to highlight “${target}”`,
     progress: `Highlighting “${target}”`,
@@ -355,7 +365,7 @@ export function ChatInput({
   );
 }
 
-/** Switch that lets the user skip approval cards for navigate/highlight. */
+/** Switch that lets the user skip approval cards for Bart's page actions. */
 export function AutoApproveToggle({
   bart,
   label = false,
@@ -370,11 +380,11 @@ export function AutoApproveToggle({
       role="switch"
       className="bart-switch"
       aria-checked={bart.autoApprove}
-      aria-label="Automatically approve navigation and highlights"
+      aria-label="Automatically approve Bart's page actions"
       title={
         bart.autoApprove
-          ? "Auto-approve is on — Bart navigates and highlights without asking"
-          : "Auto-approve navigation and highlights"
+          ? "Auto-approve is on — Bart navigates, highlights, and clicks without asking"
+          : "Auto-approve navigation, highlights, and clicks"
       }
       onClick={() => bart.setAutoApprove(!bart.autoApprove)}
     >

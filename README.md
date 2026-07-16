@@ -2,8 +2,9 @@
 
 A portable, shadcn-style React assistant you scaffold into your own codebase.
 Bart gives a website a streaming chat helper that knows the site's content
-(from markdown), can navigate between pages, and can highlight elements on the
-page — with the LLM key kept strictly server-side.
+(from markdown), can navigate between pages, can highlight elements on the
+page, and can click buttons the site explicitly opts in — with the LLM key
+kept strictly server-side.
 
 Bart is provider-agnostic: the registry depends only on the Vercel AI SDK, and
 a provider adapter is chosen server-side by the consumer. The planned V1
@@ -51,6 +52,10 @@ Things to try:
   an Allow/Deny confirmation card (navigation defaults to `confirm`).
 - Ask **“highlight the combo deals”** on the Pricing page — the `highlight`
   tool pulses an overlay around the registered section (defaults to `auto`).
+- Ask **“start a pickup order”** on the Pricing page — the `interact` tool
+  asks for approval, then clicks the page's own **Start pickup order** button
+  (only buttons flagged `interactive: true` in the manifest are clickable;
+  defaults to `confirm`).
 - **Select any page text** — an "Ask Bart" popup appears above the selection;
   clicking it opens the assistant with the selection attached as a removable
   pill. Select again to attach multiple items before asking; this works in the
@@ -67,7 +72,8 @@ Things to try:
   the bottom-right corner of the card.
 - Every variant also has an auto-approve switch (next to the lightning bolt in
   the dock/sidebar header, labelled **Auto-approve** in the spotlight's
-  corner). Flip it on and Bart navigates and highlights without asking first;
+  corner). Flip it on and Bart navigates, highlights, and clicks without
+  asking first;
   it only skips the confirmation card — tools a consumer disabled by policy
   stay disabled.
 - Switch the appearance in the header: **default** is a solid surface (white
@@ -96,6 +102,7 @@ Things to try:
 
 ```bash
 bun test              # unit tests + a per-variant component contract suite
+bun run test:e2e      # Playwright suite (starts or reuses both playground servers)
 bun run typecheck     # registry + playground TypeScript
 ```
 
@@ -139,8 +146,9 @@ and `manifest`.
 | `inputSeparator` | `true` | Dock/sidebar only. `false` removes the line between the conversation and the input row |
 | `shortcutKey` | `"/"` | Spotlight open key |
 | `selectionAsk` | `true` | Show the "Ask Bart" popup over selected page text |
-| `toolPolicy` | navigate `confirm`, highlight `auto` | Per-tool `"auto"` / `"confirm"` / `"disabled"`; the in-UI auto-approve switch can skip `confirm`, never re-enable `disabled` |
+| `toolPolicy` | navigate `confirm`, highlight `auto`, interact `confirm` | Per-tool `"auto"` / `"confirm"` / `"disabled"`; the in-UI auto-approve switch can skip `confirm`, never re-enable `disabled` |
 | `maxNavigationsPerTurn` | `2` | Navigation cap per assistant turn, clamped to 0–10 |
+| `maxInteractionsPerTurn` | `3` | Click cap per assistant turn, clamped to 0–10 |
 | `maxPendingSelections` | `8` | Attached selection pills, clamped to 1–8 |
 
 Colors, radius, and the glass tint are not props but CSS tokens in
@@ -184,7 +192,7 @@ server.
 
 Early development. Implemented: the registry (core, dock/sidebar/spotlight
 variants, theming, hardened server handler) and the visual-testing playground,
-with unit tests and a per-variant component contract suite. Not yet built: the
-`@bart-ui/cli` initializer, markdown ingestion (`bart sync`), framework
-adapters and example apps, provider factories, durable rate limiting, and the
-full Playwright browser suite.
+with unit tests, a per-variant component contract suite, and a Playwright
+browser suite against the playground. Not yet built: the `@bart-ui/cli`
+initializer, markdown ingestion (`bart sync`), framework adapters and example
+apps, provider factories, and durable rate limiting.

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "test": "bun test",
+    "test:e2e": "bun run --cwd apps/playground test:e2e",
     "typecheck": "tsc -p registry && tsc -b apps/playground",
     "playground": "bun run --cwd apps/playground dev",
     "playground:server": "bun run --cwd apps/playground server"

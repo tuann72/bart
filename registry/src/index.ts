@@ -19,10 +19,12 @@ export {
   type UseBartChatReturn,
 } from "./core/use-bart-chat";
 export { dismissHighlight, runHighlight } from "./core/highlight";
+export { runInteract } from "./core/interact";
 export { shouldTriggerShortcut, type ShortcutEventLike } from "./core/shortcut";
 export {
   DEFAULT_TOOL_POLICIES,
   resolveToolPolicies,
+  validateInteraction,
   validateRoute,
   validateTarget,
 } from "./core/tool-policy";
@@ -37,6 +39,7 @@ export type {
   BartUIMessage,
   BartVariant,
   HighlightInput,
+  InteractInput,
   NavigateInput,
   ToolPolicy,
 } from "./core/types";

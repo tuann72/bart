@@ -23,6 +23,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# playwright output
+test-results
+playwright-report
+
 # local provider smoke tests (never committed or distributed)
 apps/playground/server/*.local.ts
 
