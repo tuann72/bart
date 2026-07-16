@@ -64,6 +64,9 @@ export interface UseBartChatReturn {
   clearQuotes: () => void;
   /** Start a fresh conversation: aborts streaming, clears messages/quote/error. */
   reset: () => void;
+  /** When true, `confirm`-policy tools run without the approval card. */
+  autoApprove: boolean;
+  setAutoApprove: (autoApprove: boolean) => void;
   /** Resolve a pending `confirm`-policy tool call from the approval UI. */
   respondToToolCall: (options: {
     toolName: BartToolName;
@@ -80,7 +83,24 @@ export interface UseBartChatReturn {
  */
 export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const { api, manifest } = options;
-  const policies = resolveToolPolicies(options.toolPolicy);
+  const configuredPolicies = resolveToolPolicies(options.toolPolicy);
+  // The user-facing "auto-approve" toggle. It only skips the approval card:
+  // `confirm` becomes `auto`, while `disabled` stays disabled — the toggle can
+  // never grant a capability the consumer turned off.
+  const [autoApprove, setAutoApprove] = useState(false);
+  const policies = useMemo<BartToolPolicies>(() => {
+    if (!autoApprove) return configuredPolicies;
+    return {
+      navigate:
+        configuredPolicies.navigate === "confirm"
+          ? "auto"
+          : configuredPolicies.navigate,
+      highlight:
+        configuredPolicies.highlight === "confirm"
+          ? "auto"
+          : configuredPolicies.highlight,
+    };
+  }, [autoApprove, configuredPolicies.navigate, configuredPolicies.highlight]);
   // Security caps, not preferences: consumer configuration can lower these
   // but never raise them past the documented ceilings.
   const maxNavigations = clampLimit(options.maxNavigationsPerTurn ?? 2, 0, 10);
@@ -201,7 +221,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const respondToToolCall = useCallback<UseBartChatReturn["respondToToolCall"]>(
     ({ toolName, toolCallId, input, approved }) => {
       const output: BartToolOutput = approved
-        ? executeTool(toolName, input)
+        ? { ...executeTool(toolName, input), approvedByUser: true }
         : { ok: false, reason: "denied-by-user" };
       void chat.addToolOutput({ tool: toolName, toolCallId, output });
     },
@@ -233,6 +253,8 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
     removeQuote,
     clearQuotes,
     reset,
+    autoApprove,
+    setAutoApprove,
     respondToToolCall,
   };
 }

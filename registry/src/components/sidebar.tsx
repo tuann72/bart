@@ -124,7 +124,7 @@ export function BartSidebar({
             onKeyDown={resizeWithKeyboard}
             {...resizeHandle}
           />
-          <PanelHeader title={title} onNewChat={bart.reset} onClose={close} />
+          <PanelHeader title={title} bart={bart} onClose={close} />
           <ChatPanel bart={bart} />
         </div>
       )}

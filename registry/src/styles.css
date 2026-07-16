@@ -115,6 +115,56 @@
 }
 .bart-icon-btn:hover { background: oklch(1 0 0 / 0.15); }
 
+/* The auto-approve control is a switch: a pill track whose thumb slides
+   across and recolours when on. Track/thumb colors ride on currentColor so
+   the same control works on the primary-tinted header and on glass; the
+   header inverts the on-state locals so "on" still contrasts with primary. */
+.bart-switch {
+  --bart-switch-on-track: var(--bart-primary);
+  --bart-switch-on-thumb: var(--bart-primary-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+.bart-switch:hover { background: oklch(1 0 0 / 0.15); }
+.bart-panel-actions .bart-switch {
+  --bart-switch-on-track: var(--bart-primary-foreground);
+  --bart-switch-on-thumb: var(--bart-primary);
+}
+.bart-switch-track {
+  position: relative;
+  width: 1.75rem;
+  height: 1rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: color-mix(in oklch, currentColor 30%, transparent);
+  transition: background 150ms ease;
+}
+.bart-switch-thumb {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: currentColor;
+  transition: translate 150ms ease, background 150ms ease;
+}
+.bart-switch[aria-checked="true"] .bart-switch-track {
+  background: var(--bart-switch-on-track);
+}
+.bart-switch[aria-checked="true"] .bart-switch-thumb {
+  translate: 0.75rem 0;
+  background: var(--bart-switch-on-thumb);
+}
+
 /* Every interactive Bart element gets a pointer cursor, regardless of the
    host app's CSS reset. Resize handles are exempt: they are drag affordances
    with their own directional cursors, and this selector's specificity (0,2,1)
@@ -468,7 +518,7 @@
   height: 1.9rem;
   flex-shrink: 0;
   border: none;
-  border-radius: 50%;
+  border-radius: 0.5rem;
   background: transparent;
   color: var(--bart-muted-foreground);
   display: inline-flex;
@@ -1008,7 +1058,9 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
   .bart-selection-popover {
     animation: none;
   }
-  body.bart-sidebar-push {
+  body.bart-sidebar-push,
+  .bart-switch-track,
+  .bart-switch-thumb {
     transition: none;
   }
 }

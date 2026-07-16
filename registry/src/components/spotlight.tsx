@@ -6,7 +6,7 @@ import { shouldTriggerShortcut } from "../core/shortcut";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
 import type { BartUIMessage } from "../core/types";
-import { ChatInput, MessageList } from "./chat-parts";
+import { AutoApproveToggle, ChatInput, MessageList } from "./chat-parts";
 import { RefreshIcon } from "./icons";
 
 /** Last user message plus everything after it — the current exchange. */
@@ -106,27 +106,30 @@ export function BartSpotlight({
             <span className="bart-muted">
               <kbd className="bart-kbd">Esc</kbd> to close
             </span>
-            {bart.messages.length > 0 && (
-              <div className="bart-spotlight-actions">
-                <button
-                  type="button"
-                  className="bart-btn-ghost"
-                  onClick={() => setShowHistory((v) => !v)}
-                >
-                  {showHistory ? "Latest only" : "Show conversation"}
-                </button>
-                <button
-                  type="button"
-                  className="bart-btn-ghost"
-                  onClick={() => {
-                    bart.reset();
-                    setShowHistory(false);
-                  }}
-                >
-                  <RefreshIcon size={12} /> New chat
-                </button>
-              </div>
-            )}
+            <div className="bart-spotlight-actions">
+              <AutoApproveToggle bart={bart} label />
+              {bart.messages.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    className="bart-btn-ghost"
+                    onClick={() => setShowHistory((v) => !v)}
+                  >
+                    {showHistory ? "Latest only" : "Show conversation"}
+                  </button>
+                  <button
+                    type="button"
+                    className="bart-btn-ghost"
+                    onClick={() => {
+                      bart.reset();
+                      setShowHistory(false);
+                    }}
+                  >
+                    <RefreshIcon size={12} /> New chat
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {visible.length > 0 && (

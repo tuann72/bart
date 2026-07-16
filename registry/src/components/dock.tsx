@@ -134,7 +134,7 @@ export function BartDock({
         className="bart-resize-handle bart-dock-edge bart-dock-edge-side"
         {...sideEdge}
       />
-      <PanelHeader title={title} onNewChat={bart.reset} onClose={close} />
+      <PanelHeader title={title} bart={bart} onClose={close} />
       <ChatPanel bart={bart} />
     </div>
   );

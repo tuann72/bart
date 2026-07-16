@@ -65,6 +65,11 @@ Things to try:
 - Every variant can start a fresh conversation: the dock and sidebar headers
   have a new-chat button next to close, and the spotlight keeps its actions in
   the bottom-right corner of the card.
+- Every variant also has an auto-approve switch (next to the lightning bolt in
+  the dock/sidebar header, labelled **Auto-approve** in the spotlight's
+  corner). Flip it on and Bart navigates and highlights without asking first;
+  it only skips the confirmation card — tools a consumer disabled by policy
+  stay disabled.
 - Every variant is glass: a saturated backdrop blur with a diagonal sheen,
   tunable through the `--bart-glass` and `--bart-glass-sheen` tokens. Note that
   the page's

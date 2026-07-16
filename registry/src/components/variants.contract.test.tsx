@@ -280,13 +280,49 @@ for (const driver of drivers) {
       render(<Host variant={driver.variant} onNavigate={(r) => seen.push(r)} />);
       await openPanel(driver);
       await sendMessage("take me to the FAQ");
-      await screen.findByText("Bart wants to: Go to /faq");
+      await screen.findByText("Bart wants to navigate to /faq");
       fireEvent.click(screen.getByRole("button", { name: "Deny" }));
       await waitFor(() =>
-        expect(screen.queryByText("Bart wants to: Go to /faq")).toBeNull(),
+        expect(screen.queryByText("Bart wants to navigate to /faq")).toBeNull(),
       );
+      await screen.findByText("You denied navigation to /faq");
       expect(seen).toEqual([]);
       await screen.findByText("Okay, staying here.");
+    });
+
+    test("approving a navigation executes it and records the approval", async () => {
+      const seen: string[] = [];
+      fetchQueue.push(toolCallReply("navigate", { route: "/faq" }));
+      fetchQueue.push(textReply("Here you go."));
+      render(<Host variant={driver.variant} onNavigate={(r) => seen.push(r)} />);
+      await openPanel(driver);
+      await sendMessage("take me to the FAQ");
+      await screen.findByText("Bart wants to navigate to /faq");
+      fireEvent.click(screen.getByRole("button", { name: "Allow" }));
+      await screen.findByText("You approved navigation to /faq");
+      expect(seen).toEqual(["/faq"]);
+      await screen.findByText("Here you go.");
+    });
+
+    test("the auto-approve toggle executes navigation without an approval card", async () => {
+      const seen: string[] = [];
+      fetchQueue.push(toolCallReply("navigate", { route: "/faq" }));
+      fetchQueue.push(textReply("Done."));
+      render(<Host variant={driver.variant} onNavigate={(r) => seen.push(r)} />);
+      await openPanel(driver);
+      const toggle = screen.getByRole("switch", {
+        name: "Automatically approve navigation and highlights",
+      });
+      expect(toggle.getAttribute("aria-checked")).toBe("false");
+      fireEvent.click(toggle);
+      expect(toggle.getAttribute("aria-checked")).toBe("true");
+      await sendMessage("take me to the FAQ");
+      // No approval card: the call resolves during the stream and reports
+      // plain execution, not user approval.
+      await screen.findByText("Navigated to /faq");
+      expect(screen.queryByRole("button", { name: "Allow" })).toBeNull();
+      expect(seen).toEqual(["/faq"]);
+      await screen.findByText("Done.");
     });
 
     test("New Chat is available and resets the conversation", async () => {

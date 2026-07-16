@@ -35,6 +35,8 @@ export interface HighlightInput {
 export interface BartToolOutput {
   ok: boolean;
   reason?: string;
+  /** True when the user clicked Allow on the approval card (vs. auto policy). */
+  approvedByUser?: boolean;
 }
 
 export interface BartTools {

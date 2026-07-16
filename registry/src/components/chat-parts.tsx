@@ -16,6 +16,7 @@ import {
   RefreshIcon,
   SendIcon,
   StopIcon,
+  ZapIcon,
 } from "./icons";
 import { MarkdownContent } from "./markdown";
 
@@ -54,13 +55,28 @@ function ThinkingIndicator() {
   );
 }
 
-function toolCallLabel(name: BartToolName, input: unknown): string {
+/** Natural-language phrasing for each tool, keyed by lifecycle moment. */
+function toolPhrases(name: BartToolName, input: unknown) {
   if (name === "navigate") {
     const route = (input as { route?: string } | undefined)?.route ?? "…";
-    return `Go to ${route}`;
+    return {
+      question: `Bart wants to navigate to ${route}`,
+      progress: `Navigating to ${route}`,
+      approved: `You approved navigation to ${route}`,
+      done: `Navigated to ${route}`,
+      denied: `You denied navigation to ${route}`,
+      failed: `Couldn't navigate to ${route}`,
+    };
   }
   const target = (input as { target?: string } | undefined)?.target ?? "…";
-  return `Highlight “${target}”`;
+  return {
+    question: `Bart wants to highlight “${target}”`,
+    progress: `Highlighting “${target}”`,
+    approved: `You approved highlighting “${target}”`,
+    done: `Highlighted “${target}”`,
+    denied: `You denied highlighting “${target}”`,
+    failed: `Couldn't highlight “${target}”`,
+  };
 }
 
 function ToolPartView({
@@ -78,17 +94,17 @@ function ToolPartView({
       <div className="bart-tool-row bart-muted">{String(toolName)} (unsupported)</div>
     );
   }
-  const label = toolCallLabel(toolName, part.input);
+  const phrases = toolPhrases(toolName, part.input);
 
   if (part.state === "input-streaming") {
-    return <div className="bart-tool-row bart-muted">{label}…</div>;
+    return <div className="bart-tool-row bart-muted">{phrases.progress}…</div>;
   }
 
   if (part.state === "input-available") {
     if (bart.policies[toolName] === "confirm") {
       return (
         <div className="bart-tool-card">
-          <p className="bart-tool-question">Bart wants to: {label}</p>
+          <p className="bart-tool-question">{phrases.question}</p>
           <div className="bart-tool-actions">
             <button
               type="button"
@@ -122,22 +138,31 @@ function ToolPartView({
         </div>
       );
     }
-    return <div className="bart-tool-row bart-muted">{label}…</div>;
+    return <div className="bart-tool-row bart-muted">{phrases.progress}…</div>;
   }
 
   if (part.state === "output-available") {
     const output = part.output as BartToolOutput;
+    if (output.ok) {
+      return (
+        <div className="bart-tool-row">
+          <CheckIcon /> {output.approvedByUser ? phrases.approved : phrases.done}
+        </div>
+      );
+    }
     return (
       <div className="bart-tool-row">
-        {output.ok ? <CheckIcon /> : <CloseIcon size={12} />}{" "}
-        {output.ok ? label : `${label} — ${output.reason ?? "failed"}`}
+        <CloseIcon size={12} />{" "}
+        {output.reason === "denied-by-user"
+          ? phrases.denied
+          : `${phrases.failed} — ${output.reason ?? "failed"}`}
       </div>
     );
   }
 
   return (
     <div className="bart-tool-row">
-      <CloseIcon size={12} /> {label} — {part.errorText}
+      <CloseIcon size={12} /> {phrases.failed} — {part.errorText}
     </div>
   );
 }
@@ -301,22 +326,55 @@ export function ChatInput({
   );
 }
 
-/** Title row shared by the dock and sidebar shells: brand, new chat, close. */
+/** Switch that lets the user skip approval cards for navigate/highlight. */
+export function AutoApproveToggle({
+  bart,
+  label = false,
+}: {
+  bart: UseBartChatReturn;
+  /** Show a text label (spotlight) instead of the lightning glyph. */
+  label?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      className="bart-switch"
+      aria-checked={bart.autoApprove}
+      aria-label="Automatically approve navigation and highlights"
+      title={
+        bart.autoApprove
+          ? "Auto-approve is on — Bart navigates and highlights without asking"
+          : "Auto-approve navigation and highlights"
+      }
+      onClick={() => bart.setAutoApprove(!bart.autoApprove)}
+    >
+      {label ? "Auto-approve" : <ZapIcon size={12} />}
+      <span className="bart-switch-track" aria-hidden="true">
+        <span className="bart-switch-thumb" />
+      </span>
+    </button>
+  );
+}
+
+/** Title row shared by the dock and sidebar shells: brand, auto-approve, new chat, close. */
 export function PanelHeader({
   title,
-  onNewChat,
+  bart,
   onClose,
 }: {
   title: string;
-  onNewChat: () => void;
+  bart: UseBartChatReturn;
   onClose: () => void;
 }) {
+  const onNewChat = bart.reset;
   return (
     <header className="bart-panel-header">
       <span className="bart-panel-title">
         <BartIcon /> {title}
       </span>
       <div className="bart-panel-actions">
+        <AutoApproveToggle bart={bart} />
         <button
           type="button"
           className="bart-icon-btn"

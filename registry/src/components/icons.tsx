@@ -81,6 +81,25 @@ export function CheckIcon({ size = 12 }: IconProps) {
   );
 }
 
+/** Lightning bolt: the auto-approve toggle. */
+export function ZapIcon({ size = 14 }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M8.8 1.5L3.5 9h3.7l-1 5.5L11.5 7H7.8l1-5.5z" />
+    </svg>
+  );
+}
+
 export function RefreshIcon({ size = 14 }: IconProps) {
   return (
     <svg

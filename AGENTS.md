@@ -292,7 +292,9 @@ From the repo root:
    `LIMIT_CAPS` (server) and the client's navigation/selection caps are hard
    ceilings. Don't log API keys, full prompts, or message bodies.
 8. **Tool policies** are `auto` | `confirm` | `disabled` per tool. Defaults:
-   highlight `auto`, navigate `confirm`.
+   highlight `auto`, navigate `confirm`. The user-facing auto-approve toggle
+   (in every variant) only upgrades `confirm` to `auto`; it must never
+   re-enable a tool the consumer set to `disabled`.
 9. **Spotlight shortcut** (`/`, remappable) must never fire inside inputs,
    textareas, selects, contenteditable, during IME composition, or with
    modifiers; Escape closes and restores focus.
