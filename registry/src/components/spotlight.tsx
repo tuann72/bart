@@ -6,8 +6,15 @@ import { shouldTriggerShortcut } from "../core/shortcut";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
 import type { BartUIMessage } from "../core/types";
-import { AutoApproveToggle, ChatInput, MessageList } from "./chat-parts";
-import { RefreshIcon } from "./icons";
+import type { ReactNode } from "react";
+import type { BartAppearance } from "../core/types";
+import {
+  AutoApproveToggle,
+  ChatInput,
+  MessageList,
+  surfaceClass,
+} from "./chat-parts";
+import { BartIcon, RefreshIcon } from "./icons";
 
 /** Last user message plus everything after it — the current exchange. */
 function lastExchange(messages: BartUIMessage[]): BartUIMessage[] {
@@ -21,6 +28,9 @@ export interface BartSpotlightProps {
   onOpenChange: (open: boolean) => void;
   title?: string;
   shortcutKey?: string;
+  appearance?: BartAppearance;
+  /** Brand mark shown in the closed-state hint. Defaults to the Bart ring. */
+  icon?: ReactNode;
 }
 
 export function BartSpotlight({
@@ -29,6 +39,8 @@ export function BartSpotlight({
   onOpenChange,
   title = "Bart",
   shortcutKey = "/",
+  appearance = "default",
+  icon = <BartIcon />,
 }: BartSpotlightProps) {
   const [showHistory, setShowHistory] = useState(false);
   const restoreRef = useRef<HTMLElement | null>(null);
@@ -74,7 +86,8 @@ export function BartSpotlight({
         data-bart-ui="spotlight-hint"
         aria-hidden="true"
       >
-        Press <kbd className="bart-kbd">{shortcutKey}</kbd> to ask {title}
+        {icon} Press <kbd className="bart-kbd">{shortcutKey}</kbd> to ask{" "}
+        {title}
       </p>
     );
   }
@@ -95,7 +108,7 @@ export function BartSpotlight({
         className={`bart-spotlight-container${closing ? " bart-closing" : ""}`}
         onAnimationEnd={panelAnimationEnd}
       >
-        <div className="bart-glass bart-spotlight-inputcard">
+        <div className={`${surfaceClass(appearance)} bart-spotlight-inputcard`}>
           <ChatInput
             bart={bart}
             autoFocus
@@ -133,7 +146,7 @@ export function BartSpotlight({
           </div>
         </div>
         {visible.length > 0 && (
-          <div className="bart-glass bart-spotlight-results">
+          <div className={`${surfaceClass(appearance)} bart-spotlight-results`}>
             <MessageList bart={bart} messages={visible} />
           </div>
         )}

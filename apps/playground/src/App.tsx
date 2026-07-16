@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   BartChat,
   dismissHighlight,
+  type BartAppearance,
   type BartVariant,
   type SidebarLauncher,
 } from "@bart-ui/registry";
@@ -12,6 +13,7 @@ import { PlaygroundHeader, type PlaygroundSide } from "./playground-controls";
 export default function App() {
   const [route, setRoute] = useState("/");
   const [variant, setVariant] = useState<BartVariant>("dock");
+  const [appearance, setAppearance] = useState<BartAppearance>("default");
   const [launcher, setLauncher] = useState<SidebarLauncher>("tab");
   const [side, setSide] = useState<PlaygroundSide>("right");
   const [dark, setDark] = useState(false);
@@ -41,6 +43,8 @@ export default function App() {
         onNavigate={navigate}
         variant={variant}
         onVariantChange={setVariant}
+        appearance={appearance}
+        onAppearanceChange={setAppearance}
         side={side}
         onSideChange={setSide}
         launcher={launcher}
@@ -58,6 +62,7 @@ export default function App() {
       <BartChat
         key={variant}
         variant={variant}
+        appearance={appearance}
         side={side}
         launcher={launcher}
         title="Bart"

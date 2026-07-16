@@ -498,6 +498,14 @@
   border-top-color: var(--bart-primary);
 }
 
+/* Opt-out (inputSeparator={false}): the row keeps its height so nothing
+   shifts, but draws no line — idle or focused. Placed after the focus rules
+   above so the specificity tie resolves to "no line". */
+.bart-dock-panel.bart-no-separator .bart-input-row,
+.bart-sidebar-panel.bart-no-separator .bart-input-row {
+  border-top-color: transparent;
+}
+
 .bart-input {
   flex: 1;
   min-width: 0;
@@ -575,6 +583,32 @@
     -webkit-backdrop-filter: none;
   }
   .bart-spotlight-backdrop { backdrop-filter: none; }
+}
+
+/* ---------- solid (the default appearance) ---------- */
+
+/*
+ * The default surface: opaque --bart-surface (white in light mode) instead of
+ * glass. No backdrop-filter here, so a plain border is safe — the
+ * unfiltered-band bug described at .bart-glass only afflicts filtered
+ * surfaces. Still no box-shadow, by project rule. Shares .bart-glass's
+ * default radius so variant overrides below apply to either surface.
+ */
+.bart-solid {
+  background: var(--bart-surface);
+  border: 1px solid var(--bart-border);
+  border-radius: calc(var(--bart-radius) + 0.25rem);
+}
+
+/* Panels that meet a screen edge drop the border on that edge, like their
+   launchers do. The sidebar keeps only the line facing the page. */
+.bart-dock-panel.bart-solid { border-bottom: none; }
+.bart-sidebar-panel.bart-solid { border: none; }
+.bart-sidebar-panel.bart-solid.bart-side-right {
+  border-left: 1px solid var(--bart-border);
+}
+.bart-sidebar-panel.bart-solid.bart-side-left {
+  border-right: 1px solid var(--bart-border);
 }
 
 /* ---------- dock variant ---------- */

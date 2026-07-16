@@ -1,8 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useBartChat } from "../core/use-bart-chat";
-import type { BartPublicManifest, BartVariant } from "../core/types";
+import type {
+  BartAppearance,
+  BartPublicManifest,
+  BartVariant,
+} from "../core/types";
 import { BartDock } from "./dock";
 import { BartSidebar } from "./sidebar";
 import { BartSpotlight } from "./spotlight";
@@ -89,9 +93,17 @@ const toolCallReply = (toolName: string, input: object) => () =>
 function Host({
   variant,
   onNavigate = () => {},
+  appearance,
+  icon,
+  header,
+  inputSeparator,
 }: {
   variant: BartVariant;
   onNavigate?: (route: string) => void;
+  appearance?: BartAppearance;
+  icon?: ReactNode;
+  header?: ReactNode;
+  inputSeparator?: boolean;
 }) {
   const bart = useBartChat({
     api: "/api/bart",
@@ -109,13 +121,35 @@ function Host({
         external-close
       </button>
       {variant === "dock" && (
-        <BartDock bart={bart} open={open} onOpenChange={setOpen} />
+        <BartDock
+          bart={bart}
+          open={open}
+          onOpenChange={setOpen}
+          appearance={appearance}
+          icon={icon}
+          header={header}
+          inputSeparator={inputSeparator}
+        />
       )}
       {variant === "sidebar" && (
-        <BartSidebar bart={bart} open={open} onOpenChange={setOpen} />
+        <BartSidebar
+          bart={bart}
+          open={open}
+          onOpenChange={setOpen}
+          appearance={appearance}
+          icon={icon}
+          header={header}
+          inputSeparator={inputSeparator}
+        />
       )}
       {variant === "spotlight" && (
-        <BartSpotlight bart={bart} open={open} onOpenChange={setOpen} />
+        <BartSpotlight
+          bart={bart}
+          open={open}
+          onOpenChange={setOpen}
+          appearance={appearance}
+          icon={icon}
+        />
       )}
     </>
   );
@@ -325,6 +359,34 @@ for (const driver of drivers) {
       await screen.findByText("Done.");
     });
 
+    test("renders the solid surface by default and glass on opt-in", async () => {
+      const view = render(<Host variant={driver.variant} />);
+      await openPanel(driver);
+      expect(document.querySelector(".bart-glass")).toBeNull();
+      expect(document.querySelector(".bart-solid")).toBeTruthy();
+      view.unmount();
+      render(<Host variant={driver.variant} appearance="glass" />);
+      await openPanel(driver);
+      expect(document.querySelector(".bart-solid")).toBeNull();
+      expect(document.querySelector(".bart-glass")).toBeTruthy();
+    });
+
+    test("a custom icon node replaces the brand mark", async () => {
+      render(
+        <Host
+          variant={driver.variant}
+          icon={<span data-testid="custom-icon" />}
+        />,
+      );
+      // Closed state first: the launcher (dock/sidebar) or the hint (spotlight).
+      expect(screen.getAllByTestId("custom-icon").length).toBeGreaterThan(0);
+      if (driver.variant !== "spotlight") {
+        await openPanel(driver);
+        // …and again in the panel header.
+        expect(screen.getAllByTestId("custom-icon").length).toBeGreaterThan(0);
+      }
+    });
+
     test("New Chat is available and resets the conversation", async () => {
       fetchQueue.push(textReply("Hi!"));
       render(<Host variant={driver.variant} />);
@@ -343,6 +405,41 @@ for (const driver of drivers) {
 }
 
 // ---------- variant-specific contracts ----------
+
+// Header and separator configuration exists only on the panel shells.
+for (const driver of drivers.slice(0, 2)) {
+  describe(`${driver.variant} header/separator configuration`, () => {
+    test("header={false} removes the standard header", async () => {
+      render(<Host variant={driver.variant} header={false} />);
+      fireEvent.click(screen.getByRole("button", { name: "Bart" }));
+      await waitFor(() => expect(getPanel()).toBeTruthy());
+      expect(screen.queryByRole("button", { name: "Close chat" })).toBeNull();
+      // Escape still closes: the lifecycle hook, not the header, owns it.
+      pressEscape();
+      endExitAnimation();
+      await waitFor(() => expect(queryPanel()).toBeNull());
+    });
+
+    test("a custom header node replaces the standard one", async () => {
+      render(
+        <Host
+          variant={driver.variant}
+          header={<header data-testid="my-header">Custom</header>}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Bart" }));
+      await waitFor(() => expect(getPanel()).toBeTruthy());
+      expect(screen.getByTestId("my-header").textContent).toBe("Custom");
+      expect(screen.queryByRole("button", { name: "Close chat" })).toBeNull();
+    });
+
+    test("inputSeparator={false} marks the panel as separator-free", async () => {
+      render(<Host variant={driver.variant} inputSeparator={false} />);
+      await openPanel(driver);
+      expect(getPanel().className).toContain("bart-no-separator");
+    });
+  });
+}
 
 describe("dock specifics", () => {
   test("arrow keys on the focused corner handle resize the panel", async () => {

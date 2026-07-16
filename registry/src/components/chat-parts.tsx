@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { getToolName, isToolUIPart, type ToolUIPart } from "ai";
 import { motionDisabled } from "../core/motion";
 import {
@@ -8,7 +14,12 @@ import {
   type BartToolName,
   type UseBartChatReturn,
 } from "../core/use-bart-chat";
-import type { BartToolOutput, BartTools, BartUIMessage } from "../core/types";
+import type {
+  BartAppearance,
+  BartToolOutput,
+  BartTools,
+  BartUIMessage,
+} from "../core/types";
 import {
   BartIcon,
   CheckIcon,
@@ -21,6 +32,24 @@ import {
 import { MarkdownContent } from "./markdown";
 
 type BartToolPart = ToolUIPart<BartTools>;
+
+/** The surface-finish class every shell places on its panel(s). */
+export function surfaceClass(appearance: BartAppearance = "default"): string {
+  return appearance === "glass" ? "bart-glass" : "bart-solid";
+}
+
+/**
+ * Resolve the dock/sidebar `header` prop: `undefined`/`true` render the
+ * standard PanelHeader, `false`/`null` render nothing, anything else is the
+ * consumer's own header node.
+ */
+export function resolveHeader(
+  header: ReactNode,
+  standard: ReactNode,
+): ReactNode {
+  if (header === undefined || header === true) return standard;
+  return header;
+}
 
 const THINKING_WORDS = [
   "Pondering",
@@ -360,10 +389,12 @@ export function AutoApproveToggle({
 /** Title row shared by the dock and sidebar shells: brand, auto-approve, new chat, close. */
 export function PanelHeader({
   title,
+  icon = <BartIcon />,
   bart,
   onClose,
 }: {
   title: string;
+  icon?: ReactNode;
   bart: UseBartChatReturn;
   onClose: () => void;
 }) {
@@ -371,7 +402,7 @@ export function PanelHeader({
   return (
     <header className="bart-panel-header">
       <span className="bart-panel-title">
-        <BartIcon /> {title}
+        {icon} {title}
       </span>
       <div className="bart-panel-actions">
         <AutoApproveToggle bart={bart} />

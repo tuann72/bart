@@ -12,7 +12,14 @@ import { useResizeDrag } from "../core/use-resize-drag";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import { useSidebarPush } from "../core/use-sidebar-push";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
-import { ChatPanel, PanelHeader } from "./chat-parts";
+import type { ReactNode } from "react";
+import type { BartAppearance } from "../core/types";
+import {
+  ChatPanel,
+  PanelHeader,
+  resolveHeader,
+  surfaceClass,
+} from "./chat-parts";
 import { BartIcon } from "./icons";
 
 /** How the collapsed sidebar invites a click: a vertical edge tab, or a
@@ -29,6 +36,13 @@ export interface BartSidebarProps {
   title?: string;
   side?: BartSide;
   launcher?: SidebarLauncher;
+  appearance?: BartAppearance;
+  /** Brand mark shown in the launcher and header. Defaults to the Bart ring. */
+  icon?: ReactNode;
+  /** `true`/omitted: standard header. `false`/`null`: none. Node: your own. */
+  header?: ReactNode;
+  /** Draw the line between the conversation and the input row. Default on. */
+  inputSeparator?: boolean;
 }
 
 export function BartSidebar({
@@ -38,6 +52,10 @@ export function BartSidebar({
   title = "Bart",
   side = "right",
   launcher = "tab",
+  appearance = "default",
+  icon = <BartIcon />,
+  header,
+  inputSeparator = true,
 }: BartSidebarProps) {
   // null until dragged: the panel and the page's push margin both read
   // --bart-sidebar-width, so the CSS default drives them until a resize sets it.
@@ -91,7 +109,7 @@ export function BartSidebar({
             aria-haspopup="dialog"
             onClick={() => onOpenChange(true)}
           >
-            <BartIcon />
+            {icon}
             {title}
           </button>
         ) : (
@@ -104,7 +122,7 @@ export function BartSidebar({
             aria-haspopup="dialog"
             onClick={() => onOpenChange(true)}
           >
-            <BartIcon />
+            {icon}
             <span className="bart-sidebar-tab-label">{title}</span>
           </button>
         ))}
@@ -114,7 +132,7 @@ export function BartSidebar({
           role="dialog"
           aria-label={`${title} assistant`}
           data-bart-ui="sidebar-panel"
-          className={`bart-glass bart-sidebar-panel ${sideClass}${closing ? " bart-closing" : ""}`}
+          className={`${surfaceClass(appearance)} bart-sidebar-panel ${sideClass}${inputSeparator ? "" : " bart-no-separator"}${closing ? " bart-closing" : ""}`}
           onAnimationEnd={panelAnimationEnd}
         >
           <button
@@ -124,7 +142,15 @@ export function BartSidebar({
             onKeyDown={resizeWithKeyboard}
             {...resizeHandle}
           />
-          <PanelHeader title={title} bart={bart} onClose={close} />
+          {resolveHeader(
+            header,
+            <PanelHeader
+              title={title}
+              icon={icon}
+              bart={bart}
+              onClose={close}
+            />,
+          )}
           <ChatPanel bart={bart} />
         </div>
       )}

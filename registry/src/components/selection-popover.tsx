@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState, type AnimationEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type AnimationEvent,
+  type ReactNode,
+} from "react";
 import { motionDisabled } from "../core/motion";
 import { normalizeSelection } from "../core/selection";
 import { BartIcon } from "./icons";
@@ -37,9 +42,11 @@ function eligibleSelection(): { text: string; rect: DOMRect } | null {
 export function BartSelectionPopover({
   onAsk,
   title = "Bart",
+  icon = <BartIcon />,
 }: {
   onAsk: (text: string) => void;
   title?: string;
+  icon?: ReactNode;
 }) {
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [closing, setClosing] = useState(false);
@@ -122,7 +129,7 @@ export function BartSelectionPopover({
           onAsk(popover.text);
         }}
       >
-        <BartIcon /> Ask {title}
+        {icon} Ask {title}
       </button>
     </div>
   );

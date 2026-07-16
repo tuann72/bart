@@ -1,9 +1,14 @@
-import type { BartVariant, SidebarLauncher } from "@bart-ui/registry";
+import type {
+  BartAppearance,
+  BartVariant,
+  SidebarLauncher,
+} from "@bart-ui/registry";
 import { publicManifest } from "./manifest";
 
 export type PlaygroundSide = "left" | "right";
 
 const VARIANTS: BartVariant[] = ["dock", "sidebar", "spotlight"];
+const APPEARANCES: BartAppearance[] = ["default", "glass"];
 const LAUNCHERS: SidebarLauncher[] = ["tab", "button"];
 const SIDES: PlaygroundSide[] = ["left", "right"];
 
@@ -52,6 +57,8 @@ export function PlaygroundHeader({
   onNavigate,
   variant,
   onVariantChange,
+  appearance,
+  onAppearanceChange,
   side,
   onSideChange,
   launcher,
@@ -63,6 +70,8 @@ export function PlaygroundHeader({
   onNavigate: (route: string) => void;
   variant: BartVariant;
   onVariantChange: (variant: BartVariant) => void;
+  appearance: BartAppearance;
+  onAppearanceChange: (appearance: BartAppearance) => void;
   side: PlaygroundSide;
   onSideChange: (side: PlaygroundSide) => void;
   launcher: SidebarLauncher;
@@ -100,6 +109,12 @@ export function PlaygroundHeader({
         value={variant}
         onChange={onVariantChange}
         className="ms-auto"
+      />
+      <RadioGroup
+        label="Bart appearance"
+        options={APPEARANCES}
+        value={appearance}
+        onChange={onAppearanceChange}
       />
       {variant !== "spotlight" && (
         <RadioGroup

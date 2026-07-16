@@ -48,3 +48,6 @@ export interface BartTools {
 export type BartUIMessage = UIMessage<unknown, UIDataTypes, BartTools>;
 
 export type BartVariant = "dock" | "sidebar" | "spotlight";
+
+/** Surface finish shared by every shell: opaque (default) or backdrop-blur. */
+export type BartAppearance = "default" | "glass";

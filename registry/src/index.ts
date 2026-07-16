@@ -27,6 +27,7 @@ export {
   validateTarget,
 } from "./core/tool-policy";
 export type {
+  BartAppearance,
   BartPublicManifest,
   BartRoute,
   BartTarget,

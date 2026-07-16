@@ -11,7 +11,14 @@ import {
 import { useResizeDrag } from "../core/use-resize-drag";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { UseBartChatReturn } from "../core/use-bart-chat";
-import { ChatPanel, PanelHeader } from "./chat-parts";
+import type { ReactNode } from "react";
+import type { BartAppearance } from "../core/types";
+import {
+  ChatPanel,
+  PanelHeader,
+  resolveHeader,
+  surfaceClass,
+} from "./chat-parts";
 import { BartIcon } from "./icons";
 
 const DEFAULT_DOCK_SIZE = { width: 384, height: 448 };
@@ -31,6 +38,13 @@ export interface BartDockProps {
   onOpenChange: (open: boolean) => void;
   title?: string;
   side?: BartSide;
+  appearance?: BartAppearance;
+  /** Brand mark shown in the launcher and header. Defaults to the Bart ring. */
+  icon?: ReactNode;
+  /** `true`/omitted: standard header. `false`/`null`: none. Node: your own. */
+  header?: ReactNode;
+  /** Draw the line between the conversation and the input row. Default on. */
+  inputSeparator?: boolean;
 }
 
 export function BartDock({
@@ -39,6 +53,10 @@ export function BartDock({
   onOpenChange,
   title = "Bart",
   side = "right",
+  appearance = "default",
+  icon = <BartIcon />,
+  header,
+  inputSeparator = true,
 }: BartDockProps) {
   const [size, setSize] = useState(DEFAULT_DOCK_SIZE);
   const launcherRef = useRef<HTMLButtonElement>(null);
@@ -99,7 +117,7 @@ export function BartDock({
         aria-haspopup="dialog"
         onClick={() => onOpenChange(true)}
       >
-        <BartIcon /> {title}
+        {icon} {title}
       </button>
     );
   }
@@ -110,7 +128,7 @@ export function BartDock({
       role="dialog"
       aria-label={`${title} assistant`}
       data-bart-ui="dock-panel"
-      className={`bart-glass bart-dock-panel ${sideClass}${closing ? " bart-closing" : ""}`}
+      className={`${surfaceClass(appearance)} bart-dock-panel ${sideClass}${inputSeparator ? "" : " bart-no-separator"}${closing ? " bart-closing" : ""}`}
       style={{ width: size.width, height: size.height }}
       onAnimationEnd={panelAnimationEnd}
     >
@@ -134,7 +152,10 @@ export function BartDock({
         className="bart-resize-handle bart-dock-edge bart-dock-edge-side"
         {...sideEdge}
       />
-      <PanelHeader title={title} bart={bart} onClose={close} />
+      {resolveHeader(
+        header,
+        <PanelHeader title={title} icon={icon} bart={bart} onClose={close} />,
+      )}
       <ChatPanel bart={bart} />
     </div>
   );

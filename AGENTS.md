@@ -95,7 +95,8 @@ hoisted to root `node_modules`).
     `open` state and the selection popover), `dock.tsx`, `sidebar.tsx`,
     `spotlight.tsx` (all controlled via `open`/`onOpenChange`),
     `selection-popover.tsx`, `chat-parts.tsx` (MessageList/ChatInput/
-    approval cards/selected-text pills shared by all shells)
+    approval cards/selected-text pills shared by all shells, plus the
+    `surfaceClass`/`resolveHeader` helpers behind the configuration props)
   - `src/server/` — `index.ts` (`createBartHandler`), `context.ts`
     (deterministic lexical selection under a character budget)
   - `src/styles.css` — `--bart-*` theming tokens + all component styling
@@ -167,8 +168,15 @@ From the repo root:
   values are required; shipped defaults must hold WCAG AA contrast. This applies
   to status colors too: `--bart-danger` / `--bart-danger-border` back
   `.bart-error`, and the dark value is near-white rather than a darkened red,
-  because every variant's panel is dark glass in that theme. Literal colors
-  hardcoded in a rule are the bug — they cannot have a second theme.
+  because every variant's panel is dark (solid or glass) in that theme.
+  Literal colors hardcoded in a rule are the bug — they cannot have a second
+  theme.
+- Shell configuration is props, not forks: `appearance` (`"default"` opaque
+  surface — the default — or `"glass"` backdrop blur), `icon` (any node,
+  everywhere the brand mark shows), `title` (the shell name), and on
+  dock/sidebar `header` (`false` none / node custom) and `inputSeparator`.
+  New cosmetic knobs should follow this pattern and be covered by the
+  contract suite when they apply to every shell.
 
 ## Gotchas
 
@@ -190,9 +198,11 @@ From the repo root:
   corner radius, or shadow geometry, so it does not look like it comes from
   those properties; only removing both clears it. An edge or drop shadow has to
   live on a wrapper element instead, so no element has both them and the filter.
-  Every variant uses `.bart-glass`, so the dock and sidebar panels deliberately
-  have no border or `box-shadow` either — they are edgeless by design, separated
-  from the page by the blur and tint alone. A `::after` rim light was tried (a
+  Every variant uses `.bart-glass` when `appearance="glass"`, so glass panels
+  deliberately have no border or `box-shadow` — they are edgeless by design,
+  separated from the page by the blur and tint alone. The default appearance
+  uses `.bart-solid` (opaque `--bart-surface`, no `backdrop-filter`), which is
+  why *that* class may carry a plain border — but still no `box-shadow`. A `::after` rim light was tried (a
   pseudo-element is a separate box, so it can carry an edge without re-arming
   the band) and reverted: it read as an unwanted 1px border. Don't reintroduce
   an edge here without asking.

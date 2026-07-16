@@ -70,12 +70,12 @@ Things to try:
   corner). Flip it on and Bart navigates and highlights without asking first;
   it only skips the confirmation card — tools a consumer disabled by policy
   stay disabled.
-- Every variant is glass: a saturated backdrop blur with a diagonal sheen,
-  tunable through the `--bart-glass` and `--bart-glass-sheen` tokens. Note that
-  the page's
-  background must sit on `<body>` or `<html>` — the sidebar pushes `<body>`
-  aside, so a background on an inner wrapper leaves nothing behind the panel for
-  the blur to pick up.
+- Switch the appearance in the header: **default** is a solid surface (white
+  in light mode, tunable through `--bart-surface`), **glass** is a saturated
+  backdrop blur with a diagonal sheen, tunable through the `--bart-glass` and
+  `--bart-glass-sheen` tokens. For glass, the page's background must sit on
+  `<body>` or `<html>` — the sidebar pushes `<body>` aside, so a background on
+  an inner wrapper leaves nothing behind the panel for the blur to pick up.
 - The dock and sidebar take a `side` of `"right"` (default) or `"left"`, and
   mirror themselves accordingly — including which edges they resize from.
 - The sidebar launcher is switchable with `launcher`: `"tab"` (default, a
@@ -120,6 +120,33 @@ suite until every shell has it.
 - Theming lives in `registry/src/styles.css`: set `--bart-primary`,
   `--bart-accent` (and their `-foreground` pairs) to rebrand every variant,
   with separate `.dark` values.
+
+### Configuration
+
+Everything below is a prop on `<BartChat>` (the per-shell components accept
+the same ones where they apply). Required: `api`, `currentRoute`, `navigate`,
+and `manifest`.
+
+| Prop | Default | What it does |
+| --- | --- | --- |
+| `variant` | `"dock"` | `"dock"`, `"sidebar"`, or `"spotlight"` |
+| `appearance` | `"default"` | `"default"` is an opaque surface (white in light mode); `"glass"` is the backdrop-blur look |
+| `title` | `"Bart"` | The shell's display name: launcher and header text, aria labels, the "Ask …" popup |
+| `icon` | Bart ring mark | Any React node rendered next to the title — launcher, header, spotlight hint, and selection popup |
+| `side` | `"right"` | Which screen edge the dock/sidebar occupies |
+| `launcher` | `"tab"` | Sidebar launcher: `"tab"` (vertical edge tab) or `"button"` (floating pill) |
+| `header` | standard header | Dock/sidebar only. `false` removes the header (Escape still closes); any node replaces it wholesale |
+| `inputSeparator` | `true` | Dock/sidebar only. `false` removes the line between the conversation and the input row |
+| `shortcutKey` | `"/"` | Spotlight open key |
+| `selectionAsk` | `true` | Show the "Ask Bart" popup over selected page text |
+| `toolPolicy` | navigate `confirm`, highlight `auto` | Per-tool `"auto"` / `"confirm"` / `"disabled"`; the in-UI auto-approve switch can skip `confirm`, never re-enable `disabled` |
+| `maxNavigationsPerTurn` | `2` | Navigation cap per assistant turn, clamped to 0–10 |
+| `maxPendingSelections` | `8` | Attached selection pills, clamped to 1–8 |
+
+Colors, radius, and the glass tint are not props but CSS tokens in
+`registry/src/styles.css` (`--bart-primary`, `--bart-accent`,
+`--bart-surface`, `--bart-radius`, `--bart-glass`, …), each with a separate
+`.dark` value.
 
 ### Consumer content and environment contract
 
