@@ -111,6 +111,26 @@ focus restore, streaming, errors, tool approvals, new chat — against all
 three variants in happy-dom, so a capability added to one shell fails the
 suite until every shell has it.
 
+### Local real-provider smoke test (optional)
+
+Development and CI use the offline mock — no key, no cost. To occasionally
+sanity-check Bart against a real model, add a key to a repo-root `.env` (copy
+`.env.example`) and run one command:
+
+```bash
+bun run scripts/dev-real.ts                    # Gemini (default)
+bun run scripts/dev-real.ts --provider openai  # or openai / anthropic
+```
+
+The launcher installs the chosen provider adapter locally, generates the
+`apps/playground/server/*.local.ts` server, and starts the real API (:8787)
+plus Vite (:5173) together; Ctrl-C stops both. Everything it produces is
+**uncommitted** — the adapter never enters `package.json`/`bun.lock` (the
+manifests are restored after install) and the generated `*.local.ts` is
+gitignored — so the repository stays provider-neutral (invariant 12). The
+launcher itself imports no adapter and favors no provider. Verify with
+`curl http://127.0.0.1:8787/api/health`.
+
 ### How it fits together
 
 - `registry/src/core/use-bart-chat.ts` is the headless core (built on the

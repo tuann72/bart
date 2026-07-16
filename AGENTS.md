@@ -136,6 +136,13 @@ From the repo root:
 - `bun run typecheck` — `tsc -p registry && tsc -b apps/playground`
 - `bun run playground:server` — Hono mock API on :8787
 - `bun run playground` — Vite dev server on :5173 (run both for visual testing)
+- `bun run scripts/dev-real.ts [--provider google|openai|anthropic] [--model …]`
+  — **optional** local smoke test against a *real* provider (defaults to
+  Gemini). Provider-neutral launcher: reads a key from the root `.env`,
+  installs the chosen adapter locally (restoring `package.json`/`bun.lock`
+  afterward), generates the gitignored `apps/playground/server/*.local.ts`, and
+  runs the real API + Vite together. Everything it produces is uncommitted —
+  see invariant 12. Not part of dev/CI (those use the mock, no key, no cost).
 
 ## Working efficiently
 
@@ -349,7 +356,13 @@ From the repo root:
     future CLI into the *consumer's* project, based on the provider they
     select. The playground runs the scripted mock model only. If a
     real-provider smoke test is ever needed, it belongs behind a separate,
-    uncommitted local setup — never in the committed dependency tree.
+    uncommitted local setup — never in the committed dependency tree. This is
+    realized by `scripts/dev-real.ts`: the launcher itself is provider-neutral
+    (imports no adapter, favors none), and the adapter install + generated
+    `*.local.ts` server it produces are the *only* provider-specific artifacts,
+    both kept out of git (manifests restored after install; `*.local.ts`
+    gitignored). Keep it that way — don't let a provider adapter reach a
+    committed manifest or the generated file get committed.
 13. **Distribution allowlist**: consumer installs include only the runtime
     files declared by the selected registry items and their declared consumer
     dependencies. Never bundle `apps/`, `*.test.*`, fixtures, screenshots,
