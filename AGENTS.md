@@ -81,11 +81,22 @@ Implemented and verified:
   overlay, interact approve/deny with its DOM effect, and a layout regression
   (spotlight hint icon inline under Tailwind preflight).
 
-Planned but NOT yet built: the `@bart-ui/cli` package (`init`, `add <variant>`,
-`sync`, `doctor`, `update`), markdown ingestion via `gray-matter` (manifests are
-currently hand-written in the playground), Next.js/React Router adapters and
-example apps, provider factories (OpenAI/Anthropic/Google), and
-durable rate limiting.
+- `packages/cli/` — `@bart-ui/cli`, the published npx/bunx entry point.
+  `bart init` is implemented: it copies the bundled templates into the
+  consumer repo, writes `.bart.json` (paths, provider, install-time sha256 per
+  file — the future `bart update`'s baseline), and adds the runtime deps (plus
+  the chosen provider adapter) to the consumer's package.json without ever
+  overwriting a range the consumer already declares. Zero runtime npm
+  dependencies; written against `node:` builtins only, bundled with
+  `bun build --target=node`, and executed through the `bin/bart.js` Node shim
+  so plain `npx` works without Bun (engines: node ≥ 20).
+
+Planned but NOT yet built: the CLI's remaining subcommands (`add <variant>`,
+`sync`, `doctor`, `update` — invoking one prints "not available yet"), markdown
+ingestion via `gray-matter` (manifests are currently hand-written in the
+playground), Next.js/React Router adapters and example apps, provider factories
+(the CLI adds the adapter *dependency* but does not yet generate provider
+wiring code), and durable rate limiting.
 
 ## Workspace layout
 
@@ -125,6 +136,19 @@ hoisted to root `node_modules`).
     `bunfig.toml`): registers happy-dom, then restores Bun's native
     fetch/stream globals (see gotchas), shims `offsetParent`, silences the
     act() streaming warning
+- `packages/cli/` = `@bart-ui/cli` (publishable — the only non-private
+  package) — `src/index.ts` (command dispatch), `src/init.ts` (scaffold IO),
+  `src/lib.ts` (pure decision logic: template allowlist filter, dependency
+  merge, package-manager detection, provider table — unit-tested in
+  `src/lib.test.ts`), `scripts/bundle-templates.ts` (repo-internal Bun script:
+  regenerates `templates/bart/` from `registry/src` through the same
+  `isTemplateFile` allowlist the tests cover, and writes
+  `templates/manifest.json` carrying the registry's dependency ranges so init
+  can never drift from what the source needs), `bin/bart.js` (`#!/usr/bin/env
+  node` shim importing `dist/`). `templates/` and `dist/` are **generated**
+  (gitignored); `build`/npm `prepack` rebuild both, so every published tarball
+  snapshots the registry at that version (invariant 1). The package `files`
+  allowlist is `bin`, `dist`, `templates` (invariant 13).
 - `apps/playground/` — Vite React app (port 5173, proxies `/api` → 8787);
   `src/` splits into `App.tsx` (composition), `pages.tsx` (the fictional site
   content), and `playground-controls.tsx` (the header's variant/side/launcher
@@ -139,7 +163,9 @@ From the repo root:
 - `bun install` — install everything
 - `bun test` — unit tests
 - `bun run test:e2e` — Playwright suite (starts or reuses both playground servers)
-- `bun run typecheck` — `tsc -p registry && tsc -b apps/playground`
+- `bun run typecheck` — `tsc -p registry && tsc -p packages/cli && tsc -b apps/playground`
+- `bun run cli:build` — regenerate the CLI's `templates/` + `dist/` (also runs
+  automatically as `prepack` on `npm pack`/`publish` from `packages/cli`)
 - `bun run playground:server` — Hono mock API on :8787
 - `bun run playground` — Vite dev server on :5173 (run both for visual testing)
 - `bun run scripts/dev-real.ts [--provider google|openai|anthropic] [--model …]`
@@ -437,7 +463,11 @@ retrieval is deliberately out of V1 scope.
 - Next.js App Router + React Router/Vite-with-Hono as the two V1 targets; the
   Fetch-standard `Request -> Response` handler is the portable contract.
 - Three UI variants (dock, sidebar, spotlight) as thin shells over one shared
-  headless core; `bart init` installs one, `bart add <variant>` adds others.
+  headless core. v0.1 `bart init` vendors the **whole** registry — all three
+  shells plus `<BartChat>`'s variant switch — because the shells are thin,
+  share one core, and `<BartChat>` imports all three; per-variant slicing
+  needs registry-item metadata (which files each item owns) and arrives with
+  `bart add <variant>`.
 - V1 provider choices are OpenAI, Anthropic (Claude), and Google Generative AI
   (Gemini). The CLI installs only the adapter required by the selected
   provider/model and keeps its key in the project-root server environment.

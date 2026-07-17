@@ -1,0 +1,45 @@
+{
+  "name": "@bart-ui/cli",
+  "version": "0.1.0",
+  "description": "Scaffold Bart — a portable, shadcn-style AI assistant for React — into your project. Copies the source into your repo; you own it, no runtime dependency on Bart.",
+  "keywords": [
+    "ai",
+    "assistant",
+    "chat",
+    "react",
+    "shadcn",
+    "ai-sdk",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuann72/bart.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/tuann72/bart#readme",
+  "bugs": "https://github.com/tuann72/bart/issues",
+  "type": "module",
+  "bin": {
+    "bart": "bin/bart.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "bun run scripts/bundle-templates.ts && bun build src/index.ts --outdir dist --target=node --format=esm",
+    "prepack": "bun run build",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
