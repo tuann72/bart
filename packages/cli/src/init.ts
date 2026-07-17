@@ -1,6 +1,6 @@
 /**
  * `bart init` — copy the bundled templates into the consumer's repo, write
- * `.bart.json`, and add Bart's runtime dependencies to their package.json.
+ * `.bart.json`, and add bart-ui's runtime dependencies to their package.json.
  * All IO lives here; the decisions are in `lib.ts`.
  */
 
@@ -100,7 +100,7 @@ export async function runInit(argv: string[], cliVersion: string): Promise<void>
   const configPath = join(cwd, ".bart.json");
   if (existsSync(configPath) && !values.force) {
     throw new CliError(
-      ".bart.json already exists — Bart is already initialized (use --force to re-scaffold).",
+      ".bart.json already exists — bart-ui is already initialized (use --force to re-scaffold).",
     );
   }
   const targetDir = resolve(cwd, dir);
@@ -179,7 +179,7 @@ export async function runInit(argv: string[], cliVersion: string): Promise<void>
     console.log(`Already in your package.json (left untouched): ${merge.kept.join(", ")}.`);
   }
   if (!hasReact) {
-    console.log("\n⚠ No react dependency found — Bart requires React 19.");
+    console.log("\n⚠ No react dependency found — bart-ui requires React 19.");
   }
 
   console.log("\nNext steps:");
@@ -206,6 +206,6 @@ export async function runInit(argv: string[], cliVersion: string): Promise<void>
     for (const line of noProviderHint(pm)) console.log(line);
   }
   console.log(
-    "\nDocs, manifest format, and server-mounting examples (Next.js, Vite): https://github.com/tuann72/bart#readme\n",
+    "\nDocs, manifest format, and server-mounting examples (Next.js, Vite): https://github.com/tuann72/bart-ui#readme\n",
   );
 }

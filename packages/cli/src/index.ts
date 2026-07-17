@@ -14,7 +14,7 @@ Usage:
   npx @bart-ui/cli init [options]
 
 Options for init:
-  --dir <path>        Where to copy the Bart source (default: src/bart)
+  --dir <path>        Where to copy the bart-ui source (default: src/bart)
   --provider <name>   openai | anthropic | google | none — adds the matching
                       AI SDK adapter to your dependencies (default: prompt,
                       or none when non-interactive)

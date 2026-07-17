@@ -14,7 +14,7 @@
  * Usage (from the repo root):
  *   bun run scripts/dev-real.ts                    # defaults to Gemini
  *   bun run scripts/dev-real.ts --provider openai
- *   bun run scripts/dev-real.ts --model gemini-flash-latest --port 8787
+ *   bun run scripts/dev-real.ts --model gemini-flash-latest --port 5173
  *
  * The API key is read from the root `.env` (auto-loaded by Bun). Any of a
  * provider's accepted variable names works; the launcher normalizes it into
@@ -120,7 +120,7 @@ const providerKey = (args.provider ?? "google").toLowerCase();
 const config = pickProvider(providerKey);
 
 const model = args.model ?? config.defaultModel;
-const port = args.port ?? process.env.PORT ?? "8787";
+const port = args.port ?? process.env.PORT ?? "5173";
 
 // --- 1. Resolve the API key from any accepted name -------------------------
 const acceptedNames = [config.canonicalEnv, ...config.aliasEnv];
@@ -186,37 +186,24 @@ function generateServerFile(): string {
 // is hardcoded or passed through the browser.
 import { ${config.factory} } from "${config.pkg}";
 import { createBartHandler } from "@bart-ui/registry/server";
-import { Hono } from "hono";
 import { serverManifest } from "./manifest";
 
 const provider = ${config.factory}();
-const port = Number(process.env.PORT ?? ${port});
 
-const bartHandler = createBartHandler({
+export const handler = createBartHandler({
   model: provider(${JSON.stringify(model)}),
   manifest: serverManifest,
   system:
     ${JSON.stringify(SYSTEM_PROMPT)},
-  // The Vite dev server proxies /api here, so the browser origin differs from
-  // this server's origin and must be allowlisted explicitly.
-  allowedOrigins: ["http://localhost:5173", "http://127.0.0.1:5173"],
   // Real responses can exceed the default handler timeout.
   limits: { maxDurationMs: 120_000 },
 });
 
-const app = new Hono();
-
-app.get("/api/health", (c) =>
-  c.json({ ok: true, provider: ${JSON.stringify(providerKey)}, model: ${JSON.stringify(model)} }),
-);
-app.post("/api/bart", (c) => bartHandler(c.req.raw));
-
-console.log(
-  \`Bart REAL provider API (${providerKey} · ${model}) listening on http://localhost:\${port}\`,
-);
-
-// idleTimeout raised because real responses can exceed Bun's short default.
-export default { port, idleTimeout: 60, fetch: app.fetch };
+export const health = {
+  ok: true,
+  provider: ${JSON.stringify(providerKey)},
+  model: ${JSON.stringify(model)},
+};
 `;
 }
 
@@ -224,41 +211,39 @@ const serverFile = resolve(serverDir, config.file);
 await Bun.write(serverFile, generateServerFile());
 console.log(`• Wrote ${config.file} (uncommitted)`);
 
-// --- 4. Launch the API server + Vite together ------------------------------
+// --- 4. Launch Vite with the real API mounted as middleware ----------------
 // Normalize the resolved key into the adapter's canonical variable so the
 // generated file needs no alias handling of its own.
-const childEnv = { ...process.env, [config.canonicalEnv]: apiKey, PORT: port };
+const childEnv = {
+  ...process.env,
+  [config.canonicalEnv]: apiKey,
+  BART_PLAYGROUND_API_MODULE: `/server/${config.file}`,
+};
 
 console.log(
-  `\n▶ ${config.label} smoke test — API on :${port}, web on :5173\n` +
-    `  (this is NOT the scripted mock; Ctrl-C stops both)\n`,
+  `\n▶ ${config.label} smoke test — web + API on :${port}\n` +
+    `  (this is NOT the scripted mock; Ctrl-C stops it)\n`,
 );
 
-const api = Bun.spawn(["bun", "--watch", serverFile], {
-  cwd: repoRoot,
-  env: childEnv,
-  stdout: "inherit",
-  stderr: "inherit",
-});
-
-const web = Bun.spawn(["bun", "run", "--cwd", "apps/playground", "dev"], {
-  cwd: repoRoot,
-  env: childEnv,
-  stdout: "inherit",
-  stderr: "inherit",
-});
+const web = Bun.spawn(
+  ["bun", "run", "--cwd", "apps/playground", "dev", "--", "--port", port],
+  {
+    cwd: repoRoot,
+    env: childEnv,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+);
 
 let shuttingDown = false;
 function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
-  api.kill();
   web.kill();
 }
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
-// If either process exits, tear the other down too.
-await Promise.race([api.exited, web.exited]);
+await web.exited;
 shutdown();

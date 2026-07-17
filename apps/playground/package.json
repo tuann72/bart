@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "bun run --watch server/index.ts",
     "test:e2e": "playwright test",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
@@ -14,7 +13,6 @@
   "dependencies": {
     "@bart-ui/registry": "workspace:*",
     "ai": "^5",
-    "hono": "^4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },

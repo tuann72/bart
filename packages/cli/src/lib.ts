@@ -1,5 +1,5 @@
 /**
- * Pure decision logic for the Bart CLI — no fs, no process, no prompts.
+ * Pure decision logic for the bart-ui CLI — no fs, no process, no prompts.
  * Everything here is unit-tested with plain values; `init.ts` supplies the IO.
  */
 
@@ -82,7 +82,7 @@ export interface DependencyMerge {
 }
 
 /**
- * Add Bart's runtime deps to a consumer package.json object. A dependency the
+ * Add bart-ui's runtime deps to a consumer package.json object. A dependency the
  * consumer already declares anywhere (deps/devDeps/peerDeps) keeps its range —
  * the CLI never overwrites version choices it does not own.
  */
@@ -155,7 +155,7 @@ export function noProviderHint(pm: PackageManager): string[] {
 export interface BartConfig {
   /** CLI version that scaffolded this install. */
   cli: string;
-  /** Where the vendored Bart source lives, relative to the project root. */
+  /** Where the vendored bart-ui source lives, relative to the project root. */
   dir: string;
   /** Markdown content directory for `bart sync` (invariant 11 default). */
   content: string;

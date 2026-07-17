@@ -2,7 +2,7 @@
 
 Scaffold **Bart** — a portable, shadcn-style AI assistant for React — into your
 project. Like shadcn/ui, the CLI copies the source into your repo: you own and
-can edit every file, and there is **no runtime npm dependency on Bart**.
+can edit every file, and there is **no runtime npm dependency on bart-ui**.
 
 ```bash
 npx @bart-ui/cli init
@@ -24,11 +24,11 @@ bunx @bart-ui/cli init
 
 ## What `init` does
 
-1. Copies the Bart source into your repo (default `src/bart`, change with
+1. Copies the bart-ui source into your repo (default `src/bart`, change with
    `--dir`).
 2. Writes `.bart.json` — paths, provider choice, and install-time file hashes
    (used by the future `bart update`).
-3. Adds Bart's runtime dependencies (`ai`, `@ai-sdk/react`, `react-markdown`,
+3. Adds bart-ui's runtime dependencies (`ai`, `@ai-sdk/react`, `react-markdown`,
    `remark-gfm`, `zod`) — and, if you pick a provider, the matching
    `@ai-sdk/openai` / `@ai-sdk/anthropic` / `@ai-sdk/google` adapter — to your
    `package.json`. Versions you already declare are never overwritten. It does
@@ -74,7 +74,7 @@ import { createBartHandler } from "./bart/server";
 ```
 
 Full docs, the manifest format, and examples:
-<https://github.com/tuann72/bart#readme>
+<https://github.com/tuann72/bart-ui#readme>
 
 ## Roadmap
 

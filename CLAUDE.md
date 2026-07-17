@@ -4,4 +4,4 @@ for LLM agents working in this repository.
 
 One override worth repeating: the generic Bun guidance "don't use Vite" does
 NOT apply here — `apps/playground` intentionally uses Vite because it must
-mirror what real Bart consumers run.
+mirror what real bart-ui consumers run.

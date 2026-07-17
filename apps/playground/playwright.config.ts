@@ -1,10 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Browser suite for the Bart playground. Both servers are started
- * automatically (and reused if already running locally): the Hono mock API on
- * :8787 and the Vite app on :5173. The mock model is deterministic, so these
- * tests exercise real streaming, tool approval, and DOM effects offline.
+ * Browser suite for the Bart playground. Vite serves the app and mounts the
+ * Fetch-standard mock API as dev middleware on :5173. The mock model is
+ * deterministic, so these tests exercise real streaming, tool approval, and
+ * DOM effects offline.
  */
 export default defineConfig({
   testDir: "./e2e",
@@ -18,16 +18,9 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: [
-    {
-      command: "bun server/index.ts",
-      port: 8787,
-      reuseExistingServer: !process.env.CI,
-    },
-    {
-      command: "bun run dev",
-      port: 5173,
-      reuseExistingServer: !process.env.CI,
-    },
-  ],
+  webServer: {
+    command: "bun run dev",
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+  },
 });
