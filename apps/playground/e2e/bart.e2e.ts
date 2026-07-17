@@ -76,6 +76,20 @@ test("the spotlight hint keeps its icon on the text line", async ({ page }) => {
   expect(icon.y + icon.height).toBeGreaterThan(key.y);
 });
 
+test("host page centering does not leak into Bart's messages", async ({
+  page,
+}) => {
+  await page.goto("/");
+  // The default Vite starter ships `#root { text-align: center }`; Bart's
+  // panels must hold `text-align: start` against exactly this kind of host CSS.
+  await page.addStyleTag({ content: "#root, body { text-align: center; }" });
+  await page.getByRole("button", { name: "Bart", exact: true }).click();
+  await sendMessage(page, "How much does the Smoke Show burger cost?");
+  const answer = dialog(page).locator(".bart-msg-assistant .bart-markdown p").first();
+  await expect(answer).toBeVisible();
+  await expect(answer).toHaveCSS("text-align", "start");
+});
+
 test("highlight runs without approval and draws the overlay", async ({
   page,
 }) => {

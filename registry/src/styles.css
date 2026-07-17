@@ -36,17 +36,20 @@
   --bart-danger-border: oklch(0.65 0.15 25);
 }
 
-@theme inline {
-  --color-bart-primary: var(--bart-primary);
-  --color-bart-primary-foreground: var(--bart-primary-foreground);
-  --color-bart-accent: var(--bart-accent);
-  --color-bart-accent-foreground: var(--bart-accent-foreground);
-  --color-bart-surface: var(--bart-surface);
-  --color-bart-surface-foreground: var(--bart-surface-foreground);
-  --color-bart-border: var(--bart-border);
-}
-
 /* ---------- shared primitives ---------- */
+
+/*
+ * Bart floats above the host page, so host typography rules must not leak in:
+ * the default Vite starter, for one, sets `text-align: center` on #root, which
+ * would center every message and make short blockquote lines look indented.
+ */
+.bart-dock-tab,
+.bart-dock-panel,
+.bart-sidebar-panel,
+.bart-spotlight-root,
+.bart-selection-popover {
+  text-align: start;
+}
 
 .bart-sr-only {
   position: absolute;
@@ -600,9 +603,10 @@
   border-radius: calc(var(--bart-radius) + 0.25rem);
 }
 
-/* Panels that meet a screen edge drop the border on that edge, like their
-   launchers do. The sidebar keeps only the line facing the page. */
-.bart-dock-panel.bart-solid { border-bottom: none; }
+/* Panels that meet a screen edge drop borders. The dock panel is borderless
+   by default — its background against the page is enough of an edge. The
+   sidebar keeps only the line facing the page. */
+.bart-dock-panel.bart-solid { border: none; }
 .bart-sidebar-panel.bart-solid { border: none; }
 .bart-sidebar-panel.bart-solid.bart-side-right {
   border-left: 1px solid var(--bart-border);

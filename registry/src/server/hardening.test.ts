@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { LanguageModel } from "ai";
-import { createBartHandler } from "./index";
+import {
+  createBartHandler,
+  DEFAULT_STREAM_ERROR_MESSAGE,
+  resolveStreamErrorMessage,
+} from "./index";
 import {
   formatContext,
   neutralizeDelimiters,
@@ -189,5 +193,36 @@ describe("searchContent", () => {
     const results = searchContent(longDoc, "burgers", 5, 40);
     expect(results).toHaveLength(5);
     expect(results[0]?.excerpt).toHaveLength(40);
+  });
+});
+
+describe("resolveStreamErrorMessage", () => {
+  test("masks by default", () => {
+    expect(resolveStreamErrorMessage(new Error("key leaked!"))).toBe(
+      DEFAULT_STREAM_ERROR_MESSAGE,
+    );
+  });
+
+  test("consumer onError can replace the client-visible message", () => {
+    const message = resolveStreamErrorMessage(
+      new Error("model retired"),
+      (error) => (error instanceof Error ? error.message : "unknown"),
+    );
+    expect(message).toBe("model retired");
+  });
+
+  test("onError returning nothing keeps the mask", () => {
+    let seen: unknown;
+    const message = resolveStreamErrorMessage(new Error("boom"), (error) => {
+      seen = error;
+    });
+    expect(message).toBe(DEFAULT_STREAM_ERROR_MESSAGE);
+    expect((seen as Error).message).toBe("boom");
+  });
+
+  test("onError returning an empty string keeps the mask", () => {
+    expect(resolveStreamErrorMessage("boom", () => "")).toBe(
+      DEFAULT_STREAM_ERROR_MESSAGE,
+    );
   });
 });

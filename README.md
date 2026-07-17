@@ -11,19 +11,219 @@ a provider adapter is chosen server-side by the consumer. The planned V1
 provider choices are OpenAI, Anthropic (Claude), and Google Generative AI
 (Gemini).
 
-Consumers will eventually install it with `bunx @bart-ui/cli init` (or
-`npx @bart-ui/cli init`) and own every copied source file. This repository
-contains the source registry, the development playground, and (soon) the CLI.
+Consumers install it with `npx @bart-ui/cli init` (or `bunx @bart-ui/cli init`)
+and own every copied source file. This repository contains the source registry,
+the development playground, and the CLI.
+
+## Use Bart in your app
+
+### 1. Scaffold
+
+```bash
+npx @bart-ui/cli init --provider google   # or openai / anthropic / none
+```
+
+This copies the Bart source into `src/bart` (change with `--dir`), writes
+`.bart.json`, and adds the runtime dependencies — `ai@^5`, `@ai-sdk/react`,
+`react-markdown`, `remark-gfm`, `zod`, plus the chosen provider adapter — to
+your `package.json` (never overwriting ranges you already declare). Run your
+package manager's install afterwards.
+
+> **Adapter versions matter.** The templates use `ai@^5`, which pairs with the
+> `^2` majors of `@ai-sdk/openai` / `@ai-sdk/anthropic` / `@ai-sdk/google`.
+> Installing an adapter at `latest` targets a newer `ai` major and throws
+> `AI_UnsupportedModelVersionError` at runtime — use the ranges the CLI adds
+> (e.g. `npm install "@ai-sdk/google@^2"`).
+
+### 2. Render the UI
+
+```tsx
+import "./bart/styles.css"; // once, e.g. in your root layout / main.tsx
+import { BartChat } from "./bart";
+
+<BartChat
+  api="/api/bart"
+  currentRoute={pathname}
+  navigate={(route) => router.push(route)}
+  manifest={publicManifest}
+/>;
+```
+
+`styles.css` is plain CSS — Tailwind is **not** required. If your app uses
+Tailwind v4 and you want utilities like `bg-bart-primary`, additionally import
+`./bart/tailwind.css`.
+
+### 3. Write your manifests
+
+Until `bart sync` (markdown ingestion) ships, both manifests are hand-written
+TypeScript. The **public manifest** is browser-safe and drives navigation /
+highlighting; the **server manifest** adds the markdown bodies the model reads
+and must only be imported server-side.
+
+```ts
+// src/manifest.ts — safe to ship to the browser
+import type { BartPublicManifest } from "./bart";
+
+export const publicManifest: BartPublicManifest = {
+  routes: [
+    {
+      route: "/pricing",
+      title: "Pricing",
+      description: "Plans and combos",
+      targets: [
+        { id: "combo-deals", description: "The combo deals section" },
+        { id: "start-order", description: "Start pickup order button", interactive: true },
+      ],
+    },
+  ],
+};
+```
+
+```ts
+// server-only (e.g. src/manifest.server.ts) — contains content bodies
+import type { BartServerManifest } from "./bart/server";
+
+export const serverManifest: BartServerManifest = {
+  documents: [
+    {
+      route: "/pricing",
+      title: "Pricing",
+      description: "Plans and combos",
+      keywords: ["price", "combo"],
+      targets: [{ id: "combo-deals", description: "The combo deals section" }],
+      body: "## Pricing\nThe Smoke Show costs $12. Combo deals exist…",
+    },
+  ],
+};
+```
+
+Elements referenced as targets carry a matching `data-bart-target="combo-deals"`
+attribute in your JSX. A complete example pair lives in
+`apps/playground/src/manifest.ts` and `apps/playground/server/manifest.ts`.
+
+### 4. Mount the server handler
+
+`createBartHandler` returns a Fetch-standard `Request → Response` function;
+your LLM key stays in server-side env vars.
+
+**Next.js** (route handler, `app/api/bart/route.ts`):
+
+```ts
+import { google } from "@ai-sdk/google";
+import { createBartHandler } from "@/bart/server";
+import { serverManifest } from "@/manifest.server";
+
+export const POST = createBartHandler({
+  model: google("gemini-flash-latest"),
+  manifest: serverManifest,
+});
+```
+
+**Vite (SPA)** — Vite has no server routes, so mount the handler as dev-server
+middleware with the bundled Node bridge (`./bart/server/node`):
+
+```ts
+// vite.config.ts
+import { defineConfig, type ViteDevServer } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [
+    react(),
+    {
+      name: "bart-api",
+      configureServer(server: ViteDevServer) {
+        server.middlewares.use("/api/bart", async (req, res) => {
+          // ssrLoadModule transpiles TS and hot-reloads the handler in dev.
+          const { handler } = await server.ssrLoadModule("/src/bart-api.ts");
+          handler(req, res);
+        });
+      },
+    },
+  ],
+});
+```
+
+```ts
+// src/bart-api.ts — server-only module, never imported by client code
+import { google } from "@ai-sdk/google";
+import { createBartHandler } from "./bart/server";
+import { toNodeHandler } from "./bart/server/node";
+import { serverManifest } from "./manifest.server";
+
+export const handler = toNodeHandler(
+  createBartHandler({
+    model: google("gemini-flash-latest"),
+    manifest: serverManifest,
+  }),
+);
+```
+
+The API key must be present in the *server* process environment
+(`GOOGLE_GENERATIVE_AI_API_KEY=… npm run dev`, or load your `.env` in
+`vite.config.ts` with `dotenv`) — never in a `VITE_`-prefixed variable. In
+production a SPA needs a real host for the handler: any Node server via
+`toNodeHandler`, a serverless function, or a small Bun/Hono service (below).
+
+**Bun + Hono** (what this repo's playground does):
+
+```ts
+import { Hono } from "hono";
+import { google } from "@ai-sdk/google";
+import { createBartHandler } from "./bart/server";
+import { serverManifest } from "./manifest.server";
+
+const bart = createBartHandler({
+  model: google("gemini-flash-latest"),
+  manifest: serverManifest,
+  // Only needed when the API runs on a different origin than the page:
+  allowedOrigins: ["http://localhost:5173"],
+});
+
+const app = new Hono();
+app.post("/api/bart", (c) => bart(c.req.raw));
+export default { port: 8787, fetch: app.fetch };
+```
+
+### 5. Pick a provider and model
+
+| Provider | Adapter (pinned) | Env var | Suggested model id |
+| --- | --- | --- | --- |
+| Google (Gemini) | `@ai-sdk/google@^2` | `GOOGLE_GENERATIVE_AI_API_KEY` | `gemini-flash-latest` |
+| OpenAI | `@ai-sdk/openai@^2` | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| Anthropic | `@ai-sdk/anthropic@^2` | `ANTHROPIC_API_KEY` | `claude-haiku-4-5` |
+
+Prefer rolling aliases (like `gemini-flash-latest` /
+`gemini-flash-lite-latest`) over dated ids — dated ids retire and start
+returning 404s for new API keys.
+
+### Debugging server errors
+
+Streaming errors are masked to the client as “An error occurred.” by default,
+and the real cause is logged server-side via `console.error`. To surface more
+during development, pass `onError` to `createBartHandler`:
+
+```ts
+createBartHandler({
+  model,
+  manifest,
+  onError: (error) =>
+    process.env.NODE_ENV !== "production"
+      ? String(error) // shown in the chat UI's error banner
+      : undefined,    // keep the masked default in production
+});
+```
 
 ## Repository layout
 
 | Path | What it is |
 | --- | --- |
 | `registry/` | `@bart-ui/registry` — the source templates consumers receive: headless chat core, the three UI variants, theming tokens, and the server handler |
+| `packages/cli/` | `@bart-ui/cli` — the `npx @bart-ui/cli init` scaffolder; bundles the registry as templates at build time |
 | `apps/playground/` | Blank-page Vite app + Hono mock API for developing and visually testing Bart without an API key |
 | `AGENTS.md` | Project context for LLM agents (architecture invariants, conventions, gotchas) |
 
-## Getting started
+## Developing this repo
 
 Prerequisite: [Bun](https://bun.com) 1.3+.
 
@@ -103,7 +303,8 @@ Things to try:
 ```bash
 bun test              # unit tests + a per-variant component contract suite
 bun run test:e2e      # Playwright suite (starts or reuses both playground servers)
-bun run typecheck     # registry + playground TypeScript
+bun run typecheck     # registry + cli + playground TypeScript
+bun run cli:build     # bundle the CLI + snapshot the registry into templates/
 ```
 
 The contract suite runs one table of behavioral assertions — open/close,
@@ -212,16 +413,15 @@ Colors, radius, and the glass tint are not props but CSS tokens in
 
 ### Consumer content and environment contract
 
-The future `bart init` command defines the consumer project root as the
-directory containing the selected `package.json` (or the directory passed with
-`--cwd`) and writes that location to `.bart.json`. Relative Bart paths resolve
-from that root so monorepos do not depend on whichever directory starts the
-server.
+`bart init` defines the consumer project root as the directory containing the
+`package.json` it runs beside and writes `.bart.json` there. Relative Bart
+paths resolve from that root so monorepos do not depend on whichever directory
+starts the server.
 
-- Markdown belongs in `<project-root>/content/bart` by default. The path is
-  configurable through `.bart.json`. Initialization creates the directory and
-  a valid example document, while `bart sync` and `bart doctor` print the
-  resolved absolute path when content is missing or invalid.
+- Markdown will belong in `<project-root>/content/bart` by default (recorded
+  in `.bart.json` today; the directory, example document, and ingestion arrive
+  with `bart sync`/`bart doctor`). Until then, manifests are hand-written —
+  see "Write your manifests" above.
 - Provider secrets belong in `<project-root>/.env`; `.env.local` may override
   them for local development. Initialization creates `.env.example`, never a
   real secret file.
@@ -245,8 +445,9 @@ server.
 ## Status
 
 Early development. Implemented: the registry (core, dock/sidebar/spotlight
-variants, theming, hardened server handler) and the visual-testing playground,
+variants, theming, hardened server handler, Node http bridge), the
+`@bart-ui/cli` initializer (`bart init`), and the visual-testing playground,
 with unit tests, a per-variant component contract suite, and a Playwright
-browser suite against the playground. Not yet built: the `@bart-ui/cli`
-initializer, markdown ingestion (`bart sync`), framework adapters and example
-apps, provider factories, and durable rate limiting.
+browser suite against the playground. Not yet built: `bart add` / `bart sync`
+(markdown ingestion) / `bart doctor` / `bart update`, example apps, provider
+factories, and durable rate limiting.

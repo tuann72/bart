@@ -24,6 +24,7 @@ import {
   installCommand,
   isProviderId,
   mergeDependencies,
+  noProviderHint,
   PROVIDERS,
   type ProviderId,
 } from "./lib";
@@ -190,11 +191,21 @@ export async function runInit(argv: string[], cliVersion: string): Promise<void>
     `  3. Render <BartChat …> from ${dir} and mount createBartHandler (from ${dir}/server) on your API route.`,
   );
   if (provider !== "none") {
+    const info = PROVIDERS[provider];
     console.log(
-      `  4. Set ${PROVIDERS[provider].env} in your server environment (never expose it to the client).`,
+      `  4. Set ${info.env} in your server environment (never expose it to the client),`,
     );
+    console.log(
+      `     then wire the model: import { ${info.importName} } from "${info.pkg}" and pass`,
+    );
+    console.log(
+      `     model: ${info.importName}("${info.defaultModel}") to createBartHandler.`,
+    );
+  } else {
+    console.log("");
+    for (const line of noProviderHint(pm)) console.log(line);
   }
   console.log(
-    "\nDocs and examples: https://github.com/tuann72/bart#readme\n",
+    "\nDocs, manifest format, and server-mounting examples (Next.js, Vite): https://github.com/tuann72/bart#readme\n",
   );
 }

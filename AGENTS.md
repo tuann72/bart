@@ -49,8 +49,22 @@ Implemented and verified:
   mark, close, send, stop, check, refresh) — no emoji glyphs in Bart UI. The
   send/stop control is a round icon button inside the combined input shell.
 - User and assistant messages render safe GitHub-flavored Markdown through
-  `react-markdown` and `remark-gfm`; raw HTML is disabled. Thinking states
-  rotate playful filler labels alongside the dots.
+  `react-markdown` and `remark-gfm`; raw HTML is disabled, and the base system
+  prompt explicitly invites Markdown formatting. Thinking states rotate playful
+  filler labels alongside the dots.
+- Server ergonomics: streaming errors are masked to the client ("An error
+  occurred.") but the real cause is logged server-side via `console.error` by
+  default; `CreateBartHandlerOptions.onError` can replace the client-visible
+  message (`resolveStreamErrorMessage`, unit-tested). `server/node.ts` exports
+  `toFetchRequest`/`toNodeHandler` — a Node `http` bridge so Vite dev
+  middleware, Express, or plain `node:http` can mount the Fetch handler. It is
+  never imported by `server/index.ts`, so Bun/edge consumers never load
+  `node:http`; the README's Vite snippet uses it.
+- Host-CSS hardening: variant roots set `text-align: start` so host pages
+  (e.g. the Vite starter's `#root { text-align: center }`) can't restyle
+  Bart's text. `styles.css` is plain CSS; the Tailwind `@theme inline` token
+  bridge lives in the optional `src/tailwind.css` (imported by Tailwind-v4
+  consumers and the playground only).
 - The dock resizes from three handles on its two free edges — the inside corner
   (both axes), the top bar (height), and the inside side bar (width) — capped at
   32rem wide and `min(52rem, 92dvh)` tall. The sidebar resizes its width from a
@@ -69,7 +83,7 @@ Implemented and verified:
   API server running a scripted mock model (offline, deterministic, no API
   key). No provider adapter is installed anywhere in the repository. This app
   doubles as the future Playwright host.
-- Tests (`bun test`, 131 passing): pure unit tests (shortcut suppression,
+- Tests (`bun test`, 151 passing): pure unit tests (shortcut suppression,
   route/target/interaction validation, context selection and search, resize
   math, server boundary hardening) plus a React Testing Library contract suite
   that runs identical behavioral assertions against all three variant shells
@@ -93,10 +107,11 @@ Implemented and verified:
 
 Planned but NOT yet built: the CLI's remaining subcommands (`add <variant>`,
 `sync`, `doctor`, `update` — invoking one prints "not available yet"), markdown
-ingestion via `gray-matter` (manifests are currently hand-written in the
-playground), Next.js/React Router adapters and example apps, provider factories
-(the CLI adds the adapter *dependency* but does not yet generate provider
-wiring code), and durable rate limiting.
+ingestion via `gray-matter` (manifests are currently hand-written — the root
+README documents the format and a full example), Next.js/React Router adapters
+and example apps, provider factories (the CLI adds the adapter *dependency*
+and prints pinned-install + model-wiring hints, but does not yet generate
+provider wiring code), and durable rate limiting.
 
 ## Workspace layout
 
@@ -105,7 +120,8 @@ package's `node_modules`, symlinked into the root `.bun` store — nothing is
 hoisted to root `node_modules`).
 
 - `registry/` = `@bart-ui/registry` (private, source-only; exports `.`,
-  `./server`, `./styles.css` pointing at TypeScript source, not builds)
+  `./server`, `./server/node`, `./styles.css`, `./tailwind.css` pointing at
+  TypeScript source, not builds)
   - `src/core/` — `use-bart-chat.ts` (headless core over AI SDK `useChat`),
     `tool-policy.ts` (route/target allowlisting + policy resolution),
     `use-shell-lifecycle.ts` (open/closing/unmount phases, Escape-to-close,
@@ -130,8 +146,13 @@ hoisted to root `node_modules`).
     `MessageList`/`ChatInput`/`AutoApproveToggle` primitives, plus the approval
     cards, selected-text pills, and the `surfaceClass`/`resolveHeader` helpers)
   - `src/server/` — `index.ts` (`createBartHandler`), `context.ts`
-    (deterministic lexical selection under a character budget)
+    (deterministic lexical selection under a character budget), `node.ts`
+    (Node http → Fetch bridge for Vite middleware/Express; standalone so
+    `server/index.ts` never touches `node:http`)
   - `src/styles.css` — `--bart-*` theming tokens + all component styling
+    (plain CSS, no Tailwind constructs)
+  - `src/tailwind.css` — optional Tailwind-v4 bridge (`@theme inline` mapping
+    the tokens into `--color-bart-*`); only Tailwind consumers import it
   - `src/test-setup.ts` — `bun test` preload (wired in the root
     `bunfig.toml`): registers happy-dom, then restores Bun's native
     fetch/stream globals (see gotchas), shims `offsetParent`, silences the
@@ -219,7 +240,9 @@ From the repo root:
   runs against all three shells.
 - Semantic `bart-*` CSS classes live in `registry/src/styles.css`; theming goes
   through the `--bart-primary` / `--bart-accent` (+ `-foreground`) tokens, which
-  are also mapped into Tailwind via `@theme inline`. Both light and `.dark`
+  the optional `registry/src/tailwind.css` maps into Tailwind via `@theme
+  inline` (`styles.css` itself must stay plain CSS — non-Tailwind consumers
+  import it verbatim). Both light and `.dark`
   values are required; shipped defaults must hold WCAG AA contrast. This applies
   to status colors too: `--bart-danger` / `--bart-danger-border` back
   `.bart-error`, and the dark value is near-white rather than a darkened red,
@@ -269,7 +292,10 @@ From the repo root:
   deliberately have no border or `box-shadow` — they are edgeless by design,
   separated from the page by the blur and tint alone. The default appearance
   uses `.bart-solid` (opaque `--bart-surface`, no `backdrop-filter`), which is
-  why *that* class may carry a plain border — but still no `box-shadow`. A `::after` rim light was tried (a
+  why *that* class may carry a plain border — but still no `box-shadow`. The
+  dock panel opts out even of that: `.bart-dock-panel.bart-solid` is
+  borderless by default (a deliberate design decision — don't re-add its
+  edge). A `::after` rim light was tried (a
   pseudo-element is a separate box, so it can carry an edge without re-arming
   the band) and reverted: it read as an unwanted 1px border. Don't reintroduce
   an edge here without asking.
@@ -471,6 +497,18 @@ retrieval is deliberately out of V1 scope.
 - V1 provider choices are OpenAI, Anthropic (Claude), and Google Generative AI
   (Gemini). The CLI installs only the adapter required by the selected
   provider/model and keeps its key in the project-root server environment.
+- Adapter majors are pinned to the AI-SDK-5-compatible line (`^2` for all
+  three) in the CLI's `PROVIDERS` table. `latest` adapters pair with a newer
+  `ai` major and throw `AI_UnsupportedModelVersionError` against the
+  templates' `ai@^5` — field-tested failure. Non-interactive/`--yes` init
+  still defaults to provider `none`, but prints the pinned install commands
+  (`noProviderHint`) instead of exiting silently.
+- Model ids in docs, hints, and dev-script defaults use rolling aliases where
+  the provider offers them (`gemini-flash-latest`, `gemini-flash-lite-latest`)
+  — dated ids retire and 404 for new API keys.
+- Streaming errors stay masked client-side by default (no information leak);
+  diagnosis comes from default server-side logging plus the opt-in
+  `onError` option rather than a debug flag that could ship to production.
 - In-memory token-bucket rate limiter for dev with a durable `RateLimiter`
   interface (arbitrary string key; defaults to client IP honoring
   trusted-proxy rules) and a prominent warning when the in-memory limiter runs

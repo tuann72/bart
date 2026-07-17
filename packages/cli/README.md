@@ -34,6 +34,12 @@ bunx @bart-ui/cli init
    `package.json`. Versions you already declare are never overwritten. It does
    not run the install; it tells you the command to run.
 
+If you skip the provider (`--yes` and non-interactive runs default to `none`),
+init prints the pinned install command for each adapter. Use those ranges:
+the templates run `ai@^5`, which pairs with the `^2` adapter majors —
+installing an adapter at `latest` targets a newer `ai` major and throws
+`AI_UnsupportedModelVersionError` at runtime.
+
 ### Options
 
 | Flag | Meaning |
@@ -48,7 +54,11 @@ bunx @bart-ui/cli init
 - React 19 (React DOM), TypeScript 5+ in the consuming project
 - Node ≥ 20 to run the CLI (`bunx` works too)
 - A server route where you can mount a Fetch-standard handler (Next.js route
-  handlers, Hono, Remix/React Router resource routes, …)
+  handlers, Hono, Remix/React Router resource routes, …). Plain Vite SPAs can
+  use the bundled Node bridge (`./bart/server/node`) as dev-server middleware —
+  see the repo README for the snippet.
+- Tailwind is **not** required: `styles.css` is plain CSS. Tailwind v4 users
+  can additionally import `./bart/tailwind.css` for `bg-bart-*` utilities.
 
 ## After init
 

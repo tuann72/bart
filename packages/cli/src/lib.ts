@@ -9,10 +9,14 @@ export class CliError extends Error {}
 export interface ProviderInfo {
   /** Adapter package added to the *consumer's* project (invariant 12 — never a dependency of this repo). */
   pkg: string;
-  /** Semver range compatible with AI SDK v5. */
+  /** Semver range compatible with AI SDK v5. `latest` adapters target a newer `ai` major and fail. */
   range: string;
   /** Env var the adapter reads server-side. */
   env: string;
+  /** Default provider instance exported by the adapter package. */
+  importName: string;
+  /** Model id for hints — rolling aliases where the provider offers them, so hints never retire. */
+  defaultModel: string;
   label: string;
 }
 
@@ -21,18 +25,24 @@ export const PROVIDERS = {
     pkg: "@ai-sdk/openai",
     range: "^2",
     env: "OPENAI_API_KEY",
+    importName: "openai",
+    defaultModel: "gpt-4o-mini",
     label: "OpenAI",
   },
   anthropic: {
     pkg: "@ai-sdk/anthropic",
     range: "^2",
     env: "ANTHROPIC_API_KEY",
+    importName: "anthropic",
+    defaultModel: "claude-haiku-4-5",
     label: "Anthropic",
   },
   google: {
     pkg: "@ai-sdk/google",
     range: "^2",
     env: "GOOGLE_GENERATIVE_AI_API_KEY",
+    importName: "google",
+    defaultModel: "gemini-flash-latest",
     label: "Google (Gemini)",
   },
 } as const satisfies Record<string, ProviderInfo>;
@@ -113,6 +123,33 @@ export function detectPackageManager(rootFiles: string[]): PackageManager {
 
 export function installCommand(pm: PackageManager): string {
   return pm === "npm" ? "npm install" : `${pm} install`;
+}
+
+/** Command adding one package spec. Quoted: `^` in the range trips some shells. */
+export function addCommand(pm: PackageManager, spec: string): string {
+  const verb = pm === "npm" ? "install" : "add";
+  return `${pm} ${verb} "${spec}"`;
+}
+
+/**
+ * Printed when init finishes without a provider (the `--yes`/non-interactive
+ * default). Field-tested failure this prevents: installing an adapter at
+ * `latest` pairs with a newer `ai` major and throws
+ * AI_UnsupportedModelVersionError against the templates' ai@^5, so the hint
+ * spells out the pinned installs.
+ */
+export function noProviderHint(pm: PackageManager): string[] {
+  const lines = [
+    "⚠ No provider adapter was installed. Add one before mounting the server",
+    "  handler — pinned to the AI SDK 5-compatible major shown below. Installing",
+    "  `latest` targets a newer `ai` major and fails with the templates' ai@^5.",
+  ];
+  for (const info of Object.values<ProviderInfo>(PROVIDERS)) {
+    lines.push(
+      `    ${addCommand(pm, `${info.pkg}@${info.range}`)}   # ${info.label} — reads ${info.env}`,
+    );
+  }
+  return lines;
 }
 
 export interface BartConfig {

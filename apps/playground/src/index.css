@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@bart-ui/registry/styles.css";
+@import "@bart-ui/registry/tailwind.css";
 
 /* Bart source lives in a symlinked workspace package, outside Tailwind's
    automatic content detection. */

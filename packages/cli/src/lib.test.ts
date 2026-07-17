@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
+  addCommand,
   buildBartConfig,
   detectPackageManager,
   installCommand,
   isProviderId,
   isTemplateFile,
   mergeDependencies,
+  noProviderHint,
   PROVIDERS,
 } from "./lib";
 
@@ -77,6 +79,17 @@ describe("detectPackageManager", () => {
     expect(installCommand("bun")).toBe("bun install");
     expect(installCommand("npm")).toBe("npm install");
   });
+
+  test("add command quotes the spec and uses the manager's verb", () => {
+    expect(addCommand("npm", "@ai-sdk/google@^2")).toBe(
+      'npm install "@ai-sdk/google@^2"',
+    );
+    expect(addCommand("bun", "@ai-sdk/google@^2")).toBe(
+      'bun add "@ai-sdk/google@^2"',
+    );
+    expect(addCommand("pnpm", "ai@^5")).toBe('pnpm add "ai@^5"');
+    expect(addCommand("yarn", "ai@^5")).toBe('yarn add "ai@^5"');
+  });
 });
 
 describe("providers", () => {
@@ -89,7 +102,18 @@ describe("providers", () => {
     for (const info of Object.values(PROVIDERS)) {
       expect(info.pkg).toStartWith("@ai-sdk/");
       expect(info.env.length).toBeGreaterThan(0);
+      expect(info.importName.length).toBeGreaterThan(0);
+      expect(info.defaultModel.length).toBeGreaterThan(0);
     }
+  });
+
+  test("no-provider hint lists every adapter with its pinned range", () => {
+    const hint = noProviderHint("npm").join("\n");
+    for (const info of Object.values(PROVIDERS)) {
+      expect(hint).toContain(`"${info.pkg}@${info.range}"`);
+      expect(hint).toContain(info.env);
+    }
+    expect(hint).toContain("latest");
   });
 
   test("no provider adapter is a dependency of the registry (invariant 12)", () => {
