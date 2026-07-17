@@ -2,7 +2,11 @@
 
 import type { ReactNode } from "react";
 import type { UseBartChatOptions } from "../core/use-bart-chat";
-import type { BartAppearance, BartVariant } from "../core/types";
+import type {
+  BartAppearance,
+  BartStarterPrompt,
+  BartVariant,
+} from "../core/types";
 import { BartProvider } from "./bart-provider";
 import { BartDock } from "./dock";
 import { BartSidebar, type SidebarLauncher } from "./sidebar";
@@ -29,6 +33,8 @@ export interface BartChatProps extends UseBartChatOptions {
   shortcutKey?: string;
   /** Show an "Ask Bart" popup when page text is selected. Default on. */
   selectionAsk?: boolean;
+  /** Contextual task suggestions shown before the first message. */
+  starterPrompts?: readonly BartStarterPrompt[];
 }
 
 /**
@@ -48,6 +54,7 @@ export function BartChat({
   inputSeparator = true,
   shortcutKey = "/",
   selectionAsk = true,
+  starterPrompts,
   ...chatOptions
 }: BartChatProps) {
   const shell =
@@ -70,6 +77,7 @@ export function BartChat({
       title={title}
       icon={icon}
       appearance={appearance}
+      starterPrompts={starterPrompts}
     >
       {selectionAsk && <BartSelectionPopover />}
       {shell}

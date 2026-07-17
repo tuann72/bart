@@ -13,7 +13,7 @@ import {
   type UseBartChatOptions,
   type UseBartChatReturn,
 } from "../core/use-bart-chat";
-import type { BartAppearance } from "../core/types";
+import type { BartAppearance, BartStarterPrompt } from "../core/types";
 import { BartIcon } from "./icons";
 
 /**
@@ -34,6 +34,8 @@ export interface BartContextValue {
   icon: ReactNode;
   /** Surface finish shared by the shell's panel(s). */
   appearance: BartAppearance;
+  /** Contextual task suggestions shown before the first message. */
+  starterPrompts: readonly BartStarterPrompt[];
   /** Attach selected page text and open the shell — used by the popover. */
   askAboutSelection: (text: string) => void;
 }
@@ -96,6 +98,8 @@ export interface BartProviderProps extends UseBartChatOptions {
   icon?: ReactNode;
   /** Surface finish: opaque `"default"` or backdrop-blur `"glass"`. */
   appearance?: BartAppearance;
+  /** Contextual task suggestions shown before the first message. */
+  starterPrompts?: readonly BartStarterPrompt[];
   /** Controlled open state. Omit for uncontrolled (starts from `defaultOpen`). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -108,6 +112,7 @@ export function BartProvider({
   title = "Bart",
   icon = <BartIcon />,
   appearance = "default",
+  starterPrompts = [],
   open: controlledOpen,
   onOpenChange,
   defaultOpen = false,
@@ -136,8 +141,17 @@ export function BartProvider({
   );
 
   const value = useMemo<BartContextValue>(
-    () => ({ bart, open, setOpen, title, icon, appearance, askAboutSelection }),
-    [bart, open, setOpen, title, icon, appearance, askAboutSelection],
+    () => ({
+      bart,
+      open,
+      setOpen,
+      title,
+      icon,
+      appearance,
+      starterPrompts,
+      askAboutSelection,
+    }),
+    [bart, open, setOpen, title, icon, appearance, starterPrompts, askAboutSelection],
   );
 
   return <BartContext.Provider value={value}>{children}</BartContext.Provider>;

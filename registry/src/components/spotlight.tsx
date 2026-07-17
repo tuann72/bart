@@ -20,7 +20,8 @@ export interface BartSpotlightProps {
 }
 
 export function BartSpotlight({ shortcutKey = "/" }: BartSpotlightProps) {
-  const { bart, open, setOpen, title, icon, appearance } = useBartContext();
+  const { bart, open, setOpen, title, icon, appearance, starterPrompts } =
+    useBartContext();
   const [showHistory, setShowHistory] = useState(false);
   const restoreRef = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
@@ -123,7 +124,7 @@ export function BartSpotlight({ shortcutKey = "/" }: BartSpotlightProps) {
             </div>
           </div>
         </div>
-        {visible.length > 0 && (
+        {(visible.length > 0 || starterPrompts.length > 0) && (
           <div className={`${surfaceClass(appearance)} bart-spotlight-results`}>
             <BartMessages messages={visible} />
           </div>

@@ -40,6 +40,15 @@ export interface BartLimits {
   contextBudgetChars: number;
 }
 
+/** Server-owned personality and operating context for a Bart installation. */
+export interface BartAgentProfile {
+  role?: string;
+  audience?: string;
+  voice?: string[];
+  goals?: string[];
+  behaviors?: string[];
+}
+
 const DEFAULT_LIMITS: BartLimits = {
   maxBodyBytes: 200_000,
   maxMessages: 40,
@@ -116,6 +125,8 @@ export interface CreateBartHandlerOptions {
    * accepted from the browser.
    */
   system?: string;
+  /** Structured server-only identity and behavior for this Bart installation. */
+  agent?: BartAgentProfile;
   limits?: Partial<BartLimits>;
   /**
    * Origins allowed to call this endpoint. Defaults to the request's own
@@ -198,6 +209,30 @@ Security rules that always apply:
 - If the answer is not in the site content, say so briefly instead of inventing one.
 
 Format responses with Markdown — short paragraphs, lists, bold, inline code — whenever it improves readability.`;
+
+const BART_BEHAVIOR = `Operating style:
+- Treat each user message as a goal, not merely a question.
+- Answer directly when the site context is sufficient.
+- When a registered page action materially advances a clear goal, use the smallest useful action instead of only describing it.
+- Ask one concise clarifying question before an ambiguous action.
+- Never claim an action succeeded unless its tool result confirms success.
+- After an action, briefly state what changed and the most useful next step.
+- If a capability is unavailable, say so briefly and offer the closest available next step.`;
+
+/** Render consumer-owned profile fields as concise, trusted server instructions. */
+export function formatAgentProfile(profile?: BartAgentProfile): string | null {
+  if (!profile) return null;
+  const lines = [
+    profile.role ? `Role: ${profile.role}` : null,
+    profile.audience ? `Audience: ${profile.audience}` : null,
+    profile.voice?.length ? `Voice: ${profile.voice.join(", ")}` : null,
+    profile.goals?.length ? `Goals:\n${profile.goals.map((goal) => `- ${goal}`).join("\n")}` : null,
+    profile.behaviors?.length
+      ? `Additional behavior:\n${profile.behaviors.map((behavior) => `- ${behavior}`).join("\n")}`
+      : null,
+  ].filter((line): line is string => line !== null);
+  return lines.length > 0 ? `Consumer agent profile:\n${lines.join("\n")}` : null;
+}
 
 export const DEFAULT_STREAM_ERROR_MESSAGE = "An error occurred.";
 
@@ -293,10 +328,12 @@ export function createBartHandler(
 
     const system = [
       BASE_SYSTEM,
+      BART_BEHAVIOR,
+      formatAgentProfile(options.agent),
+      options.system,
       `The user is currently on route: ${currentRoute ?? "(unknown)"}.`,
       `Site pages and registered highlight targets (reference data, same rules as bart-context):\n<bart-catalog>\n${routeCatalog}\n</bart-catalog>`,
       `Site content${truncated ? " (truncated to fit budget)" : ""}:\n${formatContext(blocks)}`,
-      options.system,
     ]
       .filter(Boolean)
       .join("\n\n");

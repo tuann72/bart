@@ -23,6 +23,12 @@ export interface BartPublicManifest {
   routes: BartRoute[];
 }
 
+/** A contextual task displayed before a conversation begins. */
+export interface BartStarterPrompt {
+  label: string;
+  prompt: string;
+}
+
 export type ToolPolicy = "auto" | "confirm" | "disabled";
 
 export interface BartToolPolicies {

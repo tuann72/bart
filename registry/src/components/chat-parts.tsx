@@ -16,6 +16,7 @@ import {
 } from "../core/use-bart-chat";
 import type {
   BartAppearance,
+  BartStarterPrompt,
   BartToolOutput,
   BartTools,
   BartUIMessage,
@@ -209,10 +210,12 @@ function ToolPartView({
 export function MessageList({
   bart,
   messages,
+  starterPrompts = [],
   className = "",
 }: {
   bart: UseBartChatReturn;
   messages: BartUIMessage[];
+  starterPrompts?: readonly BartStarterPrompt[];
   className?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -240,10 +243,26 @@ export function MessageList({
       aria-live="polite"
     >
       {messages.length === 0 && (
-        <p className="bart-muted bart-empty-hint">
-          Ask about this site, highlight something on the page, or navigate to
-          another section.
-        </p>
+        <div className="bart-empty-hint">
+          <p className="bart-muted">
+            Ask about this site, highlight something on the page, or navigate to
+            another section.
+          </p>
+          {starterPrompts.length > 0 && (
+            <div className="bart-starter-prompts" aria-label="Suggested tasks">
+              {starterPrompts.map(({ label, prompt }) => (
+                <button
+                  key={`${label}:${prompt}`}
+                  type="button"
+                  className="bart-btn-ghost"
+                  onClick={() => bart.sendText(prompt)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
       {messages.map((message) => (
         <div
@@ -489,11 +508,12 @@ export function BartMessages({
   messages?: BartUIMessage[];
   className?: string;
 }) {
-  const { bart } = useBartContext();
+  const { bart, starterPrompts } = useBartContext();
   return (
     <MessageList
       bart={bart}
       messages={messages ?? bart.messages}
+      starterPrompts={starterPrompts}
       className={className}
     />
   );

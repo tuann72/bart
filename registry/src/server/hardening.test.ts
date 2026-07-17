@@ -3,6 +3,7 @@ import type { LanguageModel } from "ai";
 import {
   createBartHandler,
   DEFAULT_STREAM_ERROR_MESSAGE,
+  formatAgentProfile,
   resolveStreamErrorMessage,
 } from "./index";
 import {
@@ -156,6 +157,24 @@ describe("delimiter injection", () => {
     expect(out.split("</bart-context>")).toHaveLength(2);
     expect(out).toContain("&lt;/bart-context>");
     expect(out).toContain("title=\"Break &quot;out&quot;\"");
+  });
+});
+
+describe("agent profile", () => {
+  test("formats concise server-owned identity and behavior", () => {
+    expect(
+      formatAgentProfile({
+        role: "Ordering guide",
+        voice: ["warm", "brief"],
+        goals: ["Help guests choose"],
+      }),
+    ).toBe(
+      "Consumer agent profile:\nRole: Ordering guide\nVoice: warm, brief\nGoals:\n- Help guests choose",
+    );
+  });
+
+  test("omits an empty profile", () => {
+    expect(formatAgentProfile({})).toBeNull();
   });
 });
 

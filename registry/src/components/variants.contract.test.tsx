@@ -105,6 +105,7 @@ function Host({
   icon,
   header,
   inputSeparator,
+  starterPrompts,
 }: {
   variant: BartVariant;
   onNavigate?: (route: string) => void;
@@ -114,6 +115,7 @@ function Host({
   icon?: ReactNode;
   header?: ReactNode;
   inputSeparator?: boolean;
+  starterPrompts?: readonly { label: string; prompt: string }[];
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -124,6 +126,7 @@ function Host({
       manifest={manifest}
       appearance={appearance}
       icon={icon}
+      starterPrompts={starterPrompts}
       open={open}
       onOpenChange={setOpen}
     >
@@ -288,6 +291,20 @@ for (const driver of drivers) {
       await waitFor(() =>
         expect(screen.getByText("Smoke Show").tagName).toBe("STRONG"),
       );
+    });
+
+    test("renders and sends a starter task", async () => {
+      fetchQueue.push(textReply("Here are the combo deals."));
+      render(
+        <Host
+          variant={driver.variant}
+          starterPrompts={[{ label: "Show combo deals", prompt: "Show combo deals" }]}
+        />,
+      );
+      await openPanel(driver);
+      fireEvent.click(screen.getByRole("button", { name: "Show combo deals" }));
+      await screen.findByText("Show combo deals");
+      await screen.findByText("Here are the combo deals.");
     });
 
     test("a failed request surfaces a dismissible error", async () => {
