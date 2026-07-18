@@ -26,9 +26,10 @@ export function appendSelection(
   selections: readonly string[],
   rawSelection: string,
   maxItems = MAX_SELECTION_ITEMS,
-): string[] {
+): readonly string[] {
   const normalized = normalizeSelection(rawSelection);
-  if (!normalized || selections.includes(normalized)) return [...selections];
+  // Same reference on the no-op paths so state setters can bail out.
+  if (!normalized || selections.includes(normalized)) return selections;
   const cap = Math.max(1, Math.floor(maxItems));
   return [...selections, normalized].slice(-cap);
 }

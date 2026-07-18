@@ -69,11 +69,18 @@ export function validateInteraction(
   currentRoute: string,
   target: unknown,
 ): BartToolOutput {
-  const registered = validateTarget(manifest, currentRoute, target);
-  if (!registered.ok) return registered;
+  if (typeof target !== "string" || target.length === 0) {
+    return { ok: false, reason: "invalid-target" };
+  }
   const page = manifest.routes.find((r) => r.route === currentRoute);
-  const entry = page?.targets.find((t) => t.id === target);
-  if (!entry?.interactive) {
+  if (!page) {
+    return { ok: false, reason: "unknown-route" };
+  }
+  const entry = page.targets.find((t) => t.id === target);
+  if (!entry) {
+    return { ok: false, reason: "unknown-target" };
+  }
+  if (!entry.interactive) {
     return { ok: false, reason: "target-not-interactive" };
   }
   return { ok: true };

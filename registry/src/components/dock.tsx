@@ -12,7 +12,7 @@ import { useResizeDrag } from "../core/use-resize-drag";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { ReactNode } from "react";
 import { useBartContext } from "./bart-provider";
-import { BartPanelContents, surfaceClass } from "./chat-parts";
+import { BartPanelContents, LauncherButton, surfaceClass } from "./chat-parts";
 
 const DEFAULT_DOCK_SIZE = { width: 384, height: 448 };
 const MIN_DOCK_SIZE = { width: 320, height: 320 };
@@ -92,17 +92,13 @@ export function BartDock({
 
   if (!showPanel) {
     return (
-      <button
-        ref={launcherRef}
-        type="button"
-        data-bart-ui="dock-tab"
+      <LauncherButton
+        launcherRef={launcherRef}
+        ui="dock-tab"
         className={`bart-dock-tab ${sideClass}`}
-        aria-expanded="false"
-        aria-haspopup="dialog"
-        onClick={() => setOpen(true)}
       >
         {icon} {title}
-      </button>
+      </LauncherButton>
     );
   }
 

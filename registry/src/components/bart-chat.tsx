@@ -45,14 +45,16 @@ export interface BartChatProps extends UseBartChatOptions {
  */
 export function BartChat({
   variant = "dock",
-  title = "Bart",
-  appearance = "default",
+  // Cosmetic props are forwarded undefined so the provider and shells stay
+  // the single source of their defaults (title, side, shortcut key, …).
+  title,
+  appearance,
   icon,
-  side = "right",
-  launcher = "tab",
+  side,
+  launcher,
   header,
-  inputSeparator = true,
-  shortcutKey = "/",
+  inputSeparator,
+  shortcutKey,
   selectionAsk = true,
   starterPrompts,
   ...chatOptions

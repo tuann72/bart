@@ -5,7 +5,7 @@ import { useFocusTrap } from "../core/focus-trap";
 import { shouldTriggerShortcut } from "../core/shortcut";
 import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import type { BartUIMessage } from "../core/types";
-import { useBartContext } from "./bart-provider";
+import { BartShellProvider, useBartContext } from "./bart-provider";
 import { AutoApproveButton, BartInput, BartMessages, surfaceClass } from "./chat-parts";
 import { RefreshIcon } from "./icons";
 
@@ -23,26 +23,16 @@ export function BartSpotlight({ shortcutKey = "/" }: BartSpotlightProps) {
   const { bart, open, setOpen, title, icon, appearance, starterPrompts } =
     useBartContext();
   const [showHistory, setShowHistory] = useState(false);
+  // The spotlight has no launcher, so the shortcut handler stashes whatever
+  // held focus and the lifecycle hook restores it after the panel unmounts.
   const restoreRef = useRef<HTMLElement | null>(null);
-  const wasOpen = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { showPanel, closing, close, panelAnimationEnd } = useShellLifecycle({
     open,
     onOpenChange: setOpen,
+    restoreFocusTo: restoreRef,
   });
   useFocusTrap(containerRef, showPanel);
-
-  // The spotlight has no launcher, so it restores focus to whatever held it
-  // before opening (shortcut or selection popup), however open was toggled.
-  useEffect(() => {
-    if (open && !wasOpen.current) {
-      wasOpen.current = true;
-    } else if (!open && wasOpen.current) {
-      wasOpen.current = false;
-      restoreRef.current?.focus();
-      restoreRef.current = null;
-    }
-  }, [open]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -88,47 +78,50 @@ export function BartSpotlight({ shortcutKey = "/" }: BartSpotlightProps) {
         className={`bart-spotlight-container${closing ? " bart-closing" : ""}`}
         onAnimationEnd={panelAnimationEnd}
       >
-        <div className={`${surfaceClass(appearance)} bart-spotlight-inputcard`}>
-          <BartInput
-            autoFocus
-            placeholder={`Ask ${title} anything…`}
-            className="bart-spotlight-input"
-          />
-          <div className="bart-spotlight-meta">
-            <span className="bart-muted">
-              <kbd className="bart-kbd">Esc</kbd> to close
-            </span>
-            <div className="bart-spotlight-actions">
-              <AutoApproveButton label />
-              {bart.messages.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    className="bart-btn-ghost"
-                    onClick={() => setShowHistory((v) => !v)}
-                  >
-                    {showHistory ? "Latest only" : "Show conversation"}
-                  </button>
-                  <button
-                    type="button"
-                    className="bart-btn-ghost"
-                    onClick={() => {
-                      bart.reset();
-                      setShowHistory(false);
-                    }}
-                  >
-                    <RefreshIcon size={12} /> New chat
-                  </button>
-                </>
-              )}
+        {/* Shell context so a composed CloseButton plays the exit animation. */}
+        <BartShellProvider close={close}>
+          <div className={`${surfaceClass(appearance)} bart-spotlight-inputcard`}>
+            <BartInput
+              autoFocus
+              placeholder={`Ask ${title} anything…`}
+              className="bart-spotlight-input"
+            />
+            <div className="bart-spotlight-meta">
+              <span className="bart-muted">
+                <kbd className="bart-kbd">Esc</kbd> to close
+              </span>
+              <div className="bart-spotlight-actions">
+                <AutoApproveButton>Auto-approve</AutoApproveButton>
+                {bart.messages.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      className="bart-btn-ghost"
+                      onClick={() => setShowHistory((v) => !v)}
+                    >
+                      {showHistory ? "Latest only" : "Show conversation"}
+                    </button>
+                    <button
+                      type="button"
+                      className="bart-btn-ghost"
+                      onClick={() => {
+                        bart.reset();
+                        setShowHistory(false);
+                      }}
+                    >
+                      <RefreshIcon size={12} /> New chat
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        {(visible.length > 0 || starterPrompts.length > 0) && (
-          <div className={`${surfaceClass(appearance)} bart-spotlight-results`}>
-            <BartMessages messages={visible} />
-          </div>
-        )}
+          {(visible.length > 0 || starterPrompts.length > 0) && (
+            <div className={`${surfaceClass(appearance)} bart-spotlight-results`}>
+              <BartMessages messages={visible} />
+            </div>
+          )}
+        </BartShellProvider>
       </div>
     </div>
   );

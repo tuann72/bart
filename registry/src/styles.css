@@ -1014,7 +1014,10 @@ body.bart-sidebar-push-left { margin-left: var(--bart-sidebar-width); }
 
 .bart-highlight-overlay {
   position: absolute;
-  z-index: 60;
+  /* Above page content, but below every Bart surface: the overlay marks a
+     page element, so it must never paint over the dock/sidebar (40), the
+     spotlight (50), or the selection popover (70). */
+  z-index: 30;
   pointer-events: none;
   border-width: var(--bart-highlight-border-width);
   border-style: var(--bart-highlight-border-style);

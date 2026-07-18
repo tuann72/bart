@@ -17,7 +17,7 @@ server code.
 - `packages/cli/`: zero-runtime-dependency `@bart-ui/cli`. `bart init` copies
   bundled templates, writes `.bart.json` with file hashes, and adds required
   dependencies without replacing consumer ranges.
-- Tests: 151 unit/component tests and 8 Playwright flows.
+- Tests: 159 unit/component tests and 8 Playwright flows.
 
 Not built yet: `bart add`, `sync`, `doctor`, and `update`; markdown ingestion;
 framework adapters/example apps; provider factories; durable rate limiting.
@@ -135,11 +135,23 @@ Do not weaken these constraints.
   work in all shells. Variant-only behavior is presentational or input-specific.
 - `<BartChat>` is the default wrapper. `<BartProvider>` plus `BartHeader`,
   `BartBody`, `BartMessages`, `BartInput`, actions, and shells form the
-  composable API. Parts read `useBartContext`; do not prop-drill chat state.
+  composable API. Parts read `useBartContext` directly — there is no internal
+  prop-taking layer to thread new props through; do not prop-drill chat state.
+  `LauncherButton` owns the collapsed-launcher wiring and a11y contract for
+  the dock and sidebar.
 - Composable parts are presentation only. Omitting a button may hide an action
   but must not alter tool enforcement.
 - Cosmetic options are props (`appearance`, `icon`, `title`, shell header,
-  separator, side, launcher), not component forks.
+  separator, side, launcher), not component forks. Cosmetic slots follow the
+  same rule: `BartMessages` takes `emptyState`, `AutoApproveButton` takes
+  children in place of its glyph. Each cosmetic default lives once, in the
+  provider or shell — `BartChat` forwards `undefined`, never a second copy.
+- Identity discipline: `useBartChat` returns one memoized object and
+  `BartProvider` memoizes the context value keyed on it. Anything added to
+  either must be identity-stable (useCallback/useMemo, latest-value refs, or
+  module-constant defaults — never an inline default parameter), or every part
+  re-renders on every provider render. `MarkdownContent` is memoized on its
+  text; message re-parsing must never scale with stream chunks.
 - `styles.css` stays plain CSS. Theme through `--bart-*` tokens with light and
   `.dark` values meeting WCAG AA; never hardcode theme-dependent colors.
 
@@ -155,10 +167,15 @@ Do not weaken these constraints.
   JS duration timers. Reduced motion skips closing; controlled close unmounts
   immediately; reopening mid-exit cancels the close.
 - Focus restoration must run after the launcher remount commit, not directly
-  in a close handler. Use the lifecycle hook.
+  in a close handler. Use the lifecycle hook's `restoreFocusTo` — all three
+  shells do: dock/sidebar pass their launcher ref, the spotlight passes the
+  element its shortcut handler captured. Do not add a shell-local restore path.
 - `.bart-glass` intentionally has no border or box-shadow: combining either
   with `backdrop-filter` causes a pale unfiltered perimeter. Do not add a rim
   or edge without discussing the design. Solid dock panels are also borderless.
+- Bart layers on a fixed z-scale: highlight overlay 30 < dock/sidebar 40 <
+  spotlight 50 < selection popover 70. The overlay marks page content and must
+  stay below every Bart surface.
 - Host backgrounds must paint `body`/`html`, not an inner wrapper, because the
   sidebar pushes `body` and glass needs canvas behind the panel.
 - `[data-bart-ui] button:not(:disabled)` outranks a lone class. Resize handles
@@ -181,6 +198,8 @@ Do not weaken these constraints.
   not implementation details.
 - Real browser/streaming/tool flows: `apps/playground/e2e/*.e2e.ts` with the
   deterministic mock. Keep the `.e2e.ts` suffix so Bun does not collect them.
+  The suite boots its own Vite on port 5183 — never 5173, so it cannot reuse
+  a running dev/dev-real server and silently test against a real provider.
 - Use screenshots only for genuinely visual regressions and clip narrowly.
 
 ## Future markdown sync contract

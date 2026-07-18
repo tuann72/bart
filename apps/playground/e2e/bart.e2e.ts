@@ -100,9 +100,16 @@ test("highlight runs without approval and draws the overlay", async ({
     .click();
   await page.getByRole("button", { name: "Bart", exact: true }).click();
   await sendMessage(page, "Highlight the combo deals");
-  await expect(page.locator(".bart-highlight-overlay")).toBeVisible();
+  const overlay = page.locator(".bart-highlight-overlay");
+  await expect(overlay).toBeVisible();
   // Auto policy: no approval card ever appeared.
   await expect(page.getByRole("button", { name: "Allow" })).toHaveCount(0);
+  // The overlay marks page content: it must layer below Bart's own panels.
+  const zIndexOf = (locator: ReturnType<Page["locator"]>) =>
+    locator.evaluate((el) => Number(getComputedStyle(el).zIndex));
+  expect(await zIndexOf(overlay)).toBeLessThan(
+    await zIndexOf(page.locator('[data-bart-ui="dock-panel"]')),
+  );
 });
 
 test("interact asks for approval, then clicks the pricing page button", async ({

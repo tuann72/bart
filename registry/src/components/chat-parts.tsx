@@ -6,17 +6,13 @@ import {
   useState,
   type FormEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { getToolName, isToolUIPart, type ToolUIPart } from "ai";
 import { motionDisabled } from "../core/motion";
-import {
-  isBartToolName,
-  type BartToolName,
-  type UseBartChatReturn,
-} from "../core/use-bart-chat";
+import { isBartToolName, type BartToolName } from "../core/use-bart-chat";
 import type {
   BartAppearance,
-  BartStarterPrompt,
   BartToolOutput,
   BartTools,
   BartUIMessage,
@@ -98,33 +94,20 @@ function toolPhrases(name: BartToolName, input: unknown) {
     };
   }
   const target = (input as { target?: string } | undefined)?.target ?? "…";
-  if (name === "interact") {
-    return {
-      question: `Bart wants to click “${target}”`,
-      progress: `Clicking “${target}”`,
-      approved: `You approved clicking “${target}”`,
-      done: `Clicked “${target}”`,
-      denied: `You denied clicking “${target}”`,
-      failed: `Couldn't click “${target}”`,
-    };
-  }
+  const verb = name === "interact" ? "click" : "highlight";
+  const capitalized = verb.charAt(0).toUpperCase() + verb.slice(1);
   return {
-    question: `Bart wants to highlight “${target}”`,
-    progress: `Highlighting “${target}”`,
-    approved: `You approved highlighting “${target}”`,
-    done: `Highlighted “${target}”`,
-    denied: `You denied highlighting “${target}”`,
-    failed: `Couldn't highlight “${target}”`,
+    question: `Bart wants to ${verb} “${target}”`,
+    progress: `${capitalized}ing “${target}”`,
+    approved: `You approved ${verb}ing “${target}”`,
+    done: `${capitalized}ed “${target}”`,
+    denied: `You denied ${verb}ing “${target}”`,
+    failed: `Couldn't ${verb} “${target}”`,
   };
 }
 
-function ToolPartView({
-  part,
-  bart,
-}: {
-  part: BartToolPart;
-  bart: UseBartChatReturn;
-}) {
+function ToolPartView({ part }: { part: BartToolPart }) {
+  const { bart } = useBartContext();
   const toolName = getToolName(part);
   // A tool this build doesn't know renders as an inert row: no approval card,
   // no policy lookup, nothing executable.
@@ -206,17 +189,27 @@ function ToolPartView({
   );
 }
 
-export function MessageList({
-  bart,
-  messages,
-  starterPrompts = [],
+// ---------- composable parts (context-driven) ----------
+// These read the shared state from `useBartContext`, so a consumer can drop
+// them anywhere inside a shell and rearrange them without prop drilling. The
+// dock/sidebar default header is just the standard arrangement of them.
+
+/**
+ * The scrolling conversation. Defaults to the full history from context; pass
+ * `messages` to render a filtered view (the spotlight shows only the latest
+ * exchange), and `emptyState` for your own before-first-message copy.
+ */
+export function BartMessages({
+  messages: messagesProp,
   className = "",
+  emptyState,
 }: {
-  bart: UseBartChatReturn;
-  messages: BartUIMessage[];
-  starterPrompts?: readonly BartStarterPrompt[];
+  messages?: BartUIMessage[];
   className?: string;
+  emptyState?: ReactNode;
 }) {
+  const { bart, starterPrompts } = useBartContext();
+  const messages = messagesProp ?? bart.messages;
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessage = messages.at(-1);
   const assistantHasVisibleOutput =
@@ -243,10 +236,12 @@ export function MessageList({
     >
       {messages.length === 0 && (
         <div className="bart-empty-hint">
-          <p className="bart-muted">
-            Ask about this site, highlight something on the page, or navigate to
-            another section.
-          </p>
+          {emptyState ?? (
+            <p className="bart-muted">
+              Ask about this site, highlight something on the page, or navigate
+              to another section.
+            </p>
+          )}
           {starterPrompts.length > 0 && (
             <div className="bart-starter-prompts" aria-label="Suggested tasks">
               {starterPrompts.map(({ label, prompt }) => (
@@ -277,7 +272,7 @@ export function MessageList({
               );
             }
             if (isToolUIPart<BartTools>(part)) {
-              return <ToolPartView key={part.toolCallId} part={part} bart={bart} />;
+              return <ToolPartView key={part.toolCallId} part={part} />;
             }
             return null;
           })}
@@ -296,17 +291,17 @@ export function MessageList({
   );
 }
 
-export function ChatInput({
-  bart,
+/** The message composer, bound to the shared chat state. */
+export function BartInput({
   placeholder = "Ask Bart…",
   autoFocus = false,
   className = "",
 }: {
-  bart: UseBartChatReturn;
   placeholder?: string;
   autoFocus?: boolean;
   className?: string;
 }) {
+  const { bart } = useBartContext();
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const busy = bart.status === "submitted" || bart.status === "streaming";
@@ -383,15 +378,13 @@ export function ChatInput({
   );
 }
 
-/** Switch that lets the user skip approval cards for Bart's page actions. */
-export function AutoApproveToggle({
-  bart,
-  label = false,
-}: {
-  bart: UseBartChatReturn;
-  /** Show a text label (spotlight) instead of the check-mark glyph. */
-  label?: boolean;
-}) {
+/**
+ * Switch that lets the user skip approval cards for Bart's page actions.
+ * Children replace the default check-mark glyph (the spotlight passes a text
+ * label); the switch track always renders after them.
+ */
+export function AutoApproveButton({ children }: { children?: ReactNode }) {
+  const { bart } = useBartContext();
   return (
     <button
       type="button"
@@ -406,18 +399,13 @@ export function AutoApproveToggle({
       }
       onClick={() => bart.setAutoApprove(!bart.autoApprove)}
     >
-      {label ? "Auto-approve" : <CheckIcon size={12} />}
+      {children ?? <CheckIcon size={12} />}
       <span className="bart-switch-track" aria-hidden="true">
         <span className="bart-switch-thumb" />
       </span>
     </button>
   );
 }
-
-// ---------- composable parts (context-driven) ----------
-// These read the shared state from `useBartContext`, so a consumer can drop
-// them anywhere inside a shell and rearrange them without prop drilling. The
-// dock/sidebar default header is just the standard arrangement of them.
 
 /** Brand mark + title, from context. */
 export function BartTitle() {
@@ -432,12 +420,6 @@ export function BartTitle() {
 /** Right-aligned action group inside the header (holds the action buttons). */
 export function BartActions({ children }: { children?: ReactNode }) {
   return <div className="bart-panel-actions">{children}</div>;
-}
-
-/** Auto-approve switch, bound to the shared chat state. */
-export function AutoApproveButton({ label = false }: { label?: boolean }) {
-  const { bart } = useBartContext();
-  return <AutoApproveToggle bart={bart} label={label} />;
 }
 
 /** Start-a-fresh-conversation button. */
@@ -495,50 +477,6 @@ export function BartHeader({ children }: { children?: ReactNode }) {
   );
 }
 
-/**
- * The scrolling conversation. Defaults to the full history from context; pass
- * `messages` to render a filtered view (the spotlight shows only the latest
- * exchange).
- */
-export function BartMessages({
-  messages,
-  className,
-}: {
-  messages?: BartUIMessage[];
-  className?: string;
-}) {
-  const { bart, starterPrompts } = useBartContext();
-  return (
-    <MessageList
-      bart={bart}
-      messages={messages ?? bart.messages}
-      starterPrompts={starterPrompts}
-      className={className}
-    />
-  );
-}
-
-/** The message composer, from context. */
-export function BartInput({
-  autoFocus = false,
-  placeholder,
-  className,
-}: {
-  autoFocus?: boolean;
-  placeholder?: string;
-  className?: string;
-}) {
-  const { bart } = useBartContext();
-  return (
-    <ChatInput
-      bart={bart}
-      autoFocus={autoFocus}
-      placeholder={placeholder}
-      className={className}
-    />
-  );
-}
-
 /** Standard stacked body (messages + input) for the dock and sidebar shells. */
 export function BartBody({ autoFocus = true }: { autoFocus?: boolean }) {
   return (
@@ -573,5 +511,37 @@ export function BartPanelContents({
         </>
       )}
     </BartShellProvider>
+  );
+}
+
+/**
+ * Collapsed-state launcher shared by the dock and sidebar. Owns the open
+ * wiring and the accessibility contract (dialog popup, collapsed state); the
+ * shells contribute only their frame class, `data-bart-ui` id, and label.
+ */
+export function LauncherButton({
+  launcherRef,
+  ui,
+  className,
+  children,
+}: {
+  launcherRef: RefObject<HTMLButtonElement | null>;
+  ui: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const { setOpen } = useBartContext();
+  return (
+    <button
+      ref={launcherRef}
+      type="button"
+      data-bart-ui={ui}
+      className={className}
+      aria-expanded="false"
+      aria-haspopup="dialog"
+      onClick={() => setOpen(true)}
+    >
+      {children}
+    </button>
   );
 }

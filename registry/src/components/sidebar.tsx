@@ -13,7 +13,7 @@ import { useShellLifecycle } from "../core/use-shell-lifecycle";
 import { useSidebarPush } from "../core/use-sidebar-push";
 import type { ReactNode } from "react";
 import { useBartContext } from "./bart-provider";
-import { BartPanelContents, surfaceClass } from "./chat-parts";
+import { BartPanelContents, LauncherButton, surfaceClass } from "./chat-parts";
 
 /** How the collapsed sidebar invites a click: a vertical edge tab, or a
  *  floating button in the bottom corner. */
@@ -82,34 +82,20 @@ export function BartSidebar({
 
   return (
     <>
-      {!showPanel &&
-        (launcher === "button" ? (
-          <button
-            ref={launcherRef}
-            type="button"
-            data-bart-ui="sidebar-button"
-            className={`bart-sidebar-button ${sideClass}`}
-            aria-expanded="false"
-            aria-haspopup="dialog"
-            onClick={() => setOpen(true)}
-          >
-            {icon}
-            {title}
-          </button>
-        ) : (
-          <button
-            ref={launcherRef}
-            type="button"
-            data-bart-ui="sidebar-tab"
-            className={`bart-sidebar-tab ${sideClass}`}
-            aria-expanded="false"
-            aria-haspopup="dialog"
-            onClick={() => setOpen(true)}
-          >
-            {icon}
+      {!showPanel && (
+        <LauncherButton
+          launcherRef={launcherRef}
+          ui={`sidebar-${launcher}`}
+          className={`${launcher === "button" ? "bart-sidebar-button" : "bart-sidebar-tab"} ${sideClass}`}
+        >
+          {icon}
+          {launcher === "button" ? (
+            title
+          ) : (
             <span className="bart-sidebar-tab-label">{title}</span>
-          </button>
-        ))}
+          )}
+        </LauncherButton>
+      )}
       {showPanel && (
         <div
           ref={panelRef}

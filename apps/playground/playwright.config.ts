@@ -14,13 +14,16 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   use: {
-    baseURL: "http://localhost:5173",
+    // A dedicated port, not dev's 5173: reusing a `bun run playground` or
+    // dev-real server would silently run the suite against the wrong backend
+    // (a real provider instead of the deterministic mock).
+    baseURL: "http://localhost:5183",
     trace: "on-first-retry",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: "bun run dev",
-    port: 5173,
+    command: "bun run dev --port 5183 --strictPort",
+    port: 5183,
     reuseExistingServer: !process.env.CI,
   },
 });

@@ -25,6 +25,7 @@ import type {
   BartToolOutput,
   BartToolPolicies,
   BartUIMessage,
+  ToolPolicy,
 } from "./types";
 
 export type BartToolName = "navigate" | "highlight" | "interact";
@@ -42,6 +43,11 @@ function stringField(input: unknown, key: string): string | undefined {
 
 function clampLimit(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(Math.floor(value), minimum), maximum);
+}
+
+/** Auto-approve skips the approval card only; `disabled` stays disabled. */
+function skipConfirm(policy: ToolPolicy): ToolPolicy {
+  return policy === "confirm" ? "auto" : policy;
 }
 
 export interface UseBartChatOptions {
@@ -69,7 +75,7 @@ export interface UseBartChatReturn {
   stop: () => void;
   clearError: () => void;
   /** Selected page-text items attached to the next message. */
-  pendingQuotes: string[];
+  pendingQuotes: readonly string[];
   attachQuote: (rawSelection: string) => void;
   removeQuote: (index: number) => void;
   clearQuotes: () => void;
@@ -102,18 +108,9 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   const policies = useMemo<BartToolPolicies>(() => {
     if (!autoApprove) return configuredPolicies;
     return {
-      navigate:
-        configuredPolicies.navigate === "confirm"
-          ? "auto"
-          : configuredPolicies.navigate,
-      highlight:
-        configuredPolicies.highlight === "confirm"
-          ? "auto"
-          : configuredPolicies.highlight,
-      interact:
-        configuredPolicies.interact === "confirm"
-          ? "auto"
-          : configuredPolicies.interact,
+      navigate: skipConfirm(configuredPolicies.navigate),
+      highlight: skipConfirm(configuredPolicies.highlight),
+      interact: skipConfirm(configuredPolicies.interact),
     };
   }, [
     autoApprove,
@@ -135,6 +132,10 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   routeRef.current = options.currentRoute;
   const navigateRef = useRef(options.navigate);
   navigateRef.current = options.navigate;
+  // Consumers often pass an inline object; the ref keeps executeTool's (and
+  // so respondToToolCall's) identity stable across renders.
+  const highlightOptionsRef = useRef(options.highlightOptions);
+  highlightOptionsRef.current = options.highlightOptions;
   const policiesRef = useRef(policies);
   policiesRef.current = policies;
   const navigationsThisTurn = useRef(0);
@@ -164,13 +165,13 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
           return { ok: false, reason: "interaction-limit-reached" };
         }
         interactionsThisTurn.current += 1;
-        return runInteract(target, options.highlightOptions);
+        return runInteract(target, highlightOptionsRef.current);
       }
       const check = validateTarget(manifest, routeRef.current, target);
       if (!check.ok) return check;
-      return runHighlight(target, options.highlightOptions);
+      return runHighlight(target, highlightOptionsRef.current);
     },
-    [manifest, maxNavigations, maxInteractions, options.highlightOptions],
+    [manifest, maxNavigations, maxInteractions],
   );
 
   const transport = useMemo(
@@ -216,7 +217,7 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
   });
   helpersRef.current = chat;
 
-  const [pendingQuotes, setPendingQuotes] = useState<string[]>([]);
+  const [pendingQuotes, setPendingQuotes] = useState<readonly string[]>([]);
   // Read through a ref so sendText keeps one identity across quote changes.
   const quotesRef = useRef(pendingQuotes);
   quotesRef.current = pendingQuotes;
@@ -273,21 +274,41 @@ export function useBartChat(options: UseBartChatOptions): UseBartChatReturn {
 
   const clearQuotes = useCallback(() => setPendingQuotes([]), []);
 
-  return {
-    messages: chat.messages,
-    status: chat.status,
-    error: chat.error,
-    policies,
-    sendText,
-    stop,
-    clearError: chat.clearError,
-    pendingQuotes,
-    attachQuote,
-    removeQuote,
-    clearQuotes,
-    reset,
-    autoApprove,
-    setAutoApprove,
-    respondToToolCall,
-  };
+  // One memoized wrapper so the individually stable callbacks above actually
+  // pay off: BartProvider keys its context value on this object's identity.
+  return useMemo(
+    () => ({
+      messages: chat.messages,
+      status: chat.status,
+      error: chat.error,
+      policies,
+      sendText,
+      stop,
+      clearError: chat.clearError,
+      pendingQuotes,
+      attachQuote,
+      removeQuote,
+      clearQuotes,
+      reset,
+      autoApprove,
+      setAutoApprove,
+      respondToToolCall,
+    }),
+    [
+      chat.messages,
+      chat.status,
+      chat.error,
+      chat.clearError,
+      policies,
+      sendText,
+      stop,
+      pendingQuotes,
+      attachQuote,
+      removeQuote,
+      clearQuotes,
+      reset,
+      autoApprove,
+      respondToToolCall,
+    ],
+  );
 }

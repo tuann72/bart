@@ -6,9 +6,16 @@ export {
   type BartContextValue,
   type BartProviderProps,
 } from "./components/bart-provider";
-export { BartDock } from "./components/dock";
-export { BartSidebar, type SidebarLauncher } from "./components/sidebar";
-export { BartSpotlight } from "./components/spotlight";
+export { BartDock, type BartDockProps } from "./components/dock";
+export {
+  BartSidebar,
+  type BartSidebarProps,
+  type SidebarLauncher,
+} from "./components/sidebar";
+export {
+  BartSpotlight,
+  type BartSpotlightProps,
+} from "./components/spotlight";
 export {
   AutoApproveButton,
   BartActions,
@@ -38,6 +45,7 @@ export {
 export { dismissHighlight, runHighlight } from "./core/highlight";
 export { runInteract } from "./core/interact";
 export { shouldTriggerShortcut, type ShortcutEventLike } from "./core/shortcut";
+export type { BartSide } from "./core/resize";
 export {
   DEFAULT_TOOL_POLICIES,
   resolveToolPolicies,
@@ -50,6 +58,7 @@ export type {
   BartHighlightOptions,
   BartPublicManifest,
   BartRoute,
+  BartStarterPrompt,
   BartTarget,
   BartToolOutput,
   BartToolPolicies,

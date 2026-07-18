@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type AnimationEvent } from "react";
+import { useEffect, useRef, useState, type AnimationEvent } from "react";
 import { motionDisabled } from "../core/motion";
 import { normalizeSelection } from "../core/selection";
 import { useBartContext } from "./bart-provider";
@@ -40,11 +40,17 @@ export function BartSelectionPopover() {
   const { title, icon, askAboutSelection } = useBartContext();
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [closing, setClosing] = useState(false);
+  // Mirrors `popover !== null` for the document-level listeners below, which
+  // close over the first render: `selectionchange` fires on every caret move
+  // page-wide, so the nothing-shown path must be a bare ref check.
+  const shownRef = useRef(false);
 
   // Losing the selection plays the popup out rather than unmounting it, so the
   // node survives long enough for the exit animation to run.
   const dismiss = () => {
+    if (!shownRef.current) return;
     if (motionDisabled()) {
+      shownRef.current = false;
       setPopover(null);
       return;
     }
@@ -52,13 +58,17 @@ export function BartSelectionPopover() {
   };
 
   const show = (next: PopoverState) => {
+    shownRef.current = true;
     setClosing(false);
     setPopover(next);
   };
 
   // Fires for the entrance animation too, hence the `closing` guard.
   const onAnimationEnd = (event: AnimationEvent<HTMLDivElement>) => {
-    if (closing && event.target === event.currentTarget) setPopover(null);
+    if (closing && event.target === event.currentTarget) {
+      shownRef.current = false;
+      setPopover(null);
+    }
   };
 
   useEffect(() => {

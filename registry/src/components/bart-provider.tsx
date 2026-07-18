@@ -108,11 +108,16 @@ export interface BartProviderProps extends UseBartChatOptions {
   children: ReactNode;
 }
 
+// Module constants, not inline defaults: default parameter values are
+// re-created every render and would invalidate the context memo below.
+const DEFAULT_ICON = <BartIcon />;
+const NO_STARTER_PROMPTS: readonly BartStarterPrompt[] = [];
+
 export function BartProvider({
   title = "Bart",
-  icon = <BartIcon />,
+  icon = DEFAULT_ICON,
   appearance = "default",
-  starterPrompts = [],
+  starterPrompts = NO_STARTER_PROMPTS,
   open: controlledOpen,
   onOpenChange,
   defaultOpen = false,

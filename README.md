@@ -266,13 +266,19 @@ separate `.dark` values.
 
 For custom composition, use `<BartProvider>` with `BartDock`, `BartSidebar`, or
 `BartSpotlight` and the exported header, body, messages, input, and action
-parts. Presentation can be rearranged without changing core tool enforcement.
+parts. Every part reads the shared context, so pieces can be dropped, reordered,
+or replaced without wiring props — and without changing core tool enforcement.
+Cosmetic slots follow the same pattern: `BartMessages` accepts an `emptyState`
+node for the before-first-message copy, and `AutoApproveButton` renders its
+children in place of the default glyph. The prop types (`BartDockProps`,
+`BartSidebarProps`, `BartSpotlightProps`, `BartStarterPrompt`, `BartSide`) are
+exported for typed wrappers.
 
 ## Develop this repository
 
 ```bash
 bun run typecheck    # registry, CLI, and playground TypeScript
-bun test             # 151 unit and component-contract tests
+bun test             # 159 unit and component-contract tests
 bun run test:e2e     # 8 Chromium flows; starts Vite automatically
 bun run cli:build    # rebuild CLI output and bundled templates
 ```
