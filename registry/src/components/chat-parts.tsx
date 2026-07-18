@@ -28,7 +28,6 @@ import {
   RefreshIcon,
   SendIcon,
   StopIcon,
-  ZapIcon,
 } from "./icons";
 import { MarkdownContent } from "./markdown";
 
@@ -390,7 +389,7 @@ export function AutoApproveToggle({
   label = false,
 }: {
   bart: UseBartChatReturn;
-  /** Show a text label (spotlight) instead of the lightning glyph. */
+  /** Show a text label (spotlight) instead of the check-mark glyph. */
   label?: boolean;
 }) {
   return (
@@ -407,7 +406,7 @@ export function AutoApproveToggle({
       }
       onClick={() => bart.setAutoApprove(!bart.autoApprove)}
     >
-      {label ? "Auto-approve" : <ZapIcon size={12} />}
+      {label ? "Auto-approve" : <CheckIcon size={12} />}
       <span className="bart-switch-track" aria-hidden="true">
         <span className="bart-switch-thumb" />
       </span>

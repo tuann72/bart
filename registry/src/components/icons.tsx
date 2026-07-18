@@ -4,7 +4,7 @@ interface IconProps {
   size?: number;
 }
 
-/** The Bart mark: a ring with a filled center dot. */
+/** The Bart mark: a single filled dot. */
 export function BartIcon({ size = 15 }: IconProps) {
   return (
     <svg
@@ -14,8 +14,7 @@ export function BartIcon({ size = 15 }: IconProps) {
       viewBox="0 0 16 16"
       fill="none"
     >
-      <circle cx="8" cy="8" r="6.6" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="8" cy="8" r="2.6" fill="currentColor" />
+      <circle cx="8" cy="8" r="4" fill="currentColor" />
     </svg>
   );
 }
@@ -77,25 +76,6 @@ export function CheckIcon({ size = 12 }: IconProps) {
       strokeLinejoin="round"
     >
       <path d="M2.5 8.5l3.5 3.5 7.5-8" />
-    </svg>
-  );
-}
-
-/** Lightning bolt: the auto-approve toggle. */
-export function ZapIcon({ size = 14 }: IconProps) {
-  return (
-    <svg
-      aria-hidden="true"
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8.8 1.5L3.5 9h3.7l-1 5.5L11.5 7H7.8l1-5.5z" />
     </svg>
   );
 }
